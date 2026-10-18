@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Search, CircleHelp, MoreHorizontal, ChevronLeft, ChevronRight, House, UserRound, Settings, CircleDot, Database, ArrowLeft, X } from 'lucide-react';
+import { Search, CircleHelp, MoreHorizontal, ChevronLeft, ChevronRight, House, UserRound, Settings, CircleDot, Database, ArrowLeft, X, WalletCards } from 'lucide-react';
 import './styles.css';
+import './profile-image.css';
 import { HandoverPage, initialRoles } from './HandoverPage';
 import { initialDocuments } from './handoverDocuments';
 import { LoginPage } from './LoginPage';
@@ -22,12 +23,23 @@ const events: CalendarEvent[] = [
 const categories: { key: Category; label: string; tone: string }[] = [
   { key: 'work', label: '仕事', tone: 'purple' }, { key: 'personal', label: '個人', tone: 'teal' }, { key: 'shared', label: 'チーム共有', tone: 'orange' },
 ];
+const profileAvatars = [
+  { label: 'ねこ', illustration: '🐱', color: '#fff0d9' },
+  { label: 'いぬ', illustration: '🐶', color: '#e8f4ff' },
+  { label: 'うさぎ', illustration: '🐰', color: '#ffeaf2' },
+  { label: 'くま', illustration: '🐻', color: '#f5e9dc' },
+  { label: 'お花', illustration: '🌷', color: '#ffeaf2' },
+  { label: '星', illustration: '⭐', color: '#fff5cf' },
+  { label: 'テニス', illustration: '🎾', color: '#e9f8df' },
+  { label: '虹', illustration: '🌈', color: '#e9edff' },
+];
 const menuItems = [
   { label: 'ホーム', icon: House }, { label: '引き継ぎ', icon: UserRound },
   { label: 'プロフィール設定', icon: Settings }, { label: 'サークル設定', icon: CircleDot },
-  { label: '役職設定', icon: Settings, admin: true }, { label: 'データ管理', icon: Database, admin: true },
+  { label: '役職設定', icon: Settings, admin: true }, { label: '予算管理', icon: WalletCards }, { label: 'データ管理', icon: Database, admin: true },
   { label: 'サークル選択に戻る', icon: ArrowLeft },
 ];
+type BudgetItem = { id: number; name: string; amount: number; category: string; date: string; type: 'income' | 'expense' };
 const circles = [
   { id: 'tennis', name: '高体連庭球部', detail: 'テニスサークル · 12人' },
   { id: 'sample', name: '新歓プロジェクト', detail: 'イベント運営 · 8人' },
@@ -80,12 +92,21 @@ function App({ onLogout }: { onLogout: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [handoverOpen, setHandoverOpen] = useState(false);
   const [circleSelectionOpen, setCircleSelectionOpen] = useState(false);
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const [monthlyBudget, setMonthlyBudget] = useState(100000);
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
+  const [budgetDraft, setBudgetDraft] = useState({ name: '', amount: '', category: '活動費', date: '2026-01-01', type: 'expense' as 'income' | 'expense' });
   const [selectedCircle, setSelectedCircle] = useState(circles[0]);
   const [roles, setRoles] = useState(initialRoles);
   const [documents, setDocuments] = useState(initialDocuments);
   const [query, setQuery] = useState('');
   const [enabled, setEnabled] = useState<Category[]>(['work', 'personal', 'shared']);
   const [notice, setNotice] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [selectedProfileAvatar, setSelectedProfileAvatar] = useState<(typeof profileAvatars)[number] | null>(null);
+  const [avatarChooserOpen, setAvatarChooserOpen] = useState(false);
+  const profileImageInput = useRef<HTMLInputElement>(null);
+  const avatarChooserHeading = useRef<HTMLHeadingElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const [eventDetail, setEventDetail] = useState<CalendarEvent | null>(null);
@@ -100,11 +121,13 @@ function App({ onLogout }: { onLogout: () => void }) {
   useEffect(() => { if (eventDetail) activityHeading.current?.focus(); }, [eventDetail]);
   useEffect(() => {
     function dismiss(e: PointerEvent) { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); }
-    function keyboard(e: KeyboardEvent) { if (e.key === 'Escape') { setMenuOpen(false); setEventDetail(null); setHandoverOpen(false); menuButton.current?.focus(); } }
+    function keyboard(e: KeyboardEvent) { if (e.key === 'Escape') { if (avatarChooserOpen) { setAvatarChooserOpen(false); } else { setMenuOpen(false); setEventDetail(null); setHandoverOpen(false); menuButton.current?.focus(); } } }
     document.addEventListener('pointerdown', dismiss); document.addEventListener('keydown', keyboard);
     return () => { document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', keyboard); };
-  }, []);
+  }, [avatarChooserOpen]);
   useEffect(() => { if (!notice) return; const timer = window.setTimeout(() => setNotice(null), 4000); return () => clearTimeout(timer); }, [notice]);
+  useEffect(() => { if (avatarChooserOpen) avatarChooserHeading.current?.focus(); }, [avatarChooserOpen]);
+  useEffect(() => () => { if (profileImage) URL.revokeObjectURL(profileImage); }, [profileImage]);
   const year = month.getFullYear(), monthIndex = month.getMonth();
   const monthName = month.toLocaleString('ja-JP', { month: 'long' });
 
@@ -114,10 +137,22 @@ function App({ onLogout }: { onLogout: () => void }) {
   const cells = Array.from({ length: 42 }, (_, i) => i >= firstDay && i < firstDay + dayCount ? i - firstDay + 1 : null);
   function changeMonth(delta: number) { setMonth(new Date(year, monthIndex + delta, 1)); setSelectedDay(null); }
   function placeholder(label: string) { setMenuOpen(false); setNotice(`${label}は今後実装予定です。`); }
+  function handleProfileImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.currentTarget.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setProfileImage(URL.createObjectURL(file));
+      setSelectedProfileAvatar(null);
+      setAvatarChooserOpen(false);
+    } else if (file) {
+      setNotice('画像ファイルを選択してください。');
+    }
+    e.currentTarget.value = '';
+  }
   function goHome() {
     setMonth(new Date(2026, 0, 1));
     setSelectedDay(9);
     setCircleSelectionOpen(false);
+    setBudgetOpen(false);
     setHandoverOpen(false);
     setEventDetail(null);
     setMenuOpen(false);
@@ -128,6 +163,7 @@ function App({ onLogout }: { onLogout: () => void }) {
     setEventDetail(null);
     setMenuOpen(false);
   }
+  function openBudget() { setBudgetOpen(true); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
   function selectCircle(circle: typeof circles[number]) {
     setSelectedCircle(circle);
     goHome();
@@ -163,13 +199,19 @@ function App({ onLogout }: { onLogout: () => void }) {
           <button ref={menuButton} className={`menu-trigger icon-button ${menuOpen ? 'active' : ''}`} aria-label="メニュー" aria-expanded={menuOpen} aria-controls="home-menu" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={26}/></button>
           {menuOpen && <nav id="home-menu" className="menu-panel" aria-label="ホームメニュー">
             <div className="menu-heading"><span>メニュー</span><span>Akira Kimura</span></div>
-            {menuItems.map(({ label, icon: Icon, admin }, i) => <button key={label} className={`menu-item ${(!circleSelectionOpen && (handoverOpen ? i === 1 : i === 0)) ? 'current' : ''}`} onClick={() => { if (i === 0) goHome(); else if (i === 1) { setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setHandoverOpen(true); } else if (i === 6) openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
+            {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!circleSelectionOpen && !budgetOpen && (handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setHandoverOpen(true); } else if (label === '予算管理') openBudget(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
           </nav>}
         </div>
       </div>
     </header>
-    <main className={eventDetail || handoverOpen || circleSelectionOpen ? 'activity-main' : undefined}>
-      {circleSelectionOpen ? <section className="circle-selection-page" aria-labelledby="circle-selection-title">
+    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen ? 'activity-main' : undefined}>
+      {budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
+        <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><span>予算管理</span></nav>
+        <div className="budget-heading"><div><h1 id="budget-title">予算管理</h1><p className="activity-subtitle">サークルの予算と支出を管理します <span className="activity-sample-note">（表示確認用の一時保存）</span></p></div></div>
+        <div className="budget-summary"><label>月の予算<input type="number" min="0" value={monthlyBudget} onChange={e => setMonthlyBudget(Number(e.target.value))} />円</label><div><span>月の残り予算</span><strong className="budget-remaining">{(monthlyBudget - budgetItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)).toLocaleString()}円</strong></div><div><span>サークルの残高</span><strong className="budget-balance">{(budgetItems.reduce((sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount), 0)).toLocaleString()}円</strong></div></div>
+        <form className="budget-form" onSubmit={e => { e.preventDefault(); const amount = Number(budgetDraft.amount); if (!budgetDraft.name.trim() || amount <= 0) { setNotice('項目名と正しい金額を入力してください。'); return; } setBudgetItems(previous => [...previous, { id: Date.now(), name: budgetDraft.name.trim(), amount, category: budgetDraft.category, date: budgetDraft.date, type: budgetDraft.type }]); setBudgetDraft({ name: '', amount: '', category: '活動費', date: '2026-01-01', type: 'expense' }); setNotice(budgetDraft.type === 'income' ? '収入を追加しました。' : '支出を追加しました。'); }}><h2>{budgetDraft.type === 'income' ? '収入を追加' : '支出を追加'}</h2><select aria-label="入出金種別" value={budgetDraft.type} onChange={e => setBudgetDraft(previous => ({ ...previous, type: e.target.value as 'income' | 'expense' }))}><option value="expense">支出</option><option value="income">収入</option></select><input aria-label="項目名" placeholder="項目名" value={budgetDraft.name} onChange={e => setBudgetDraft(previous => ({ ...previous, name: e.target.value }))} /><input aria-label="金額" type="number" min="1" placeholder="金額" value={budgetDraft.amount} onChange={e => setBudgetDraft(previous => ({ ...previous, amount: e.target.value }))} /><select aria-label="カテゴリ" value={budgetDraft.category} onChange={e => setBudgetDraft(previous => ({ ...previous, category: e.target.value }))}><option>活動費</option><option>備品費</option><option>会場費</option><option>会費</option><option>寄付</option><option>その他</option></select><input aria-label="日付" type="date" value={budgetDraft.date} onChange={e => setBudgetDraft(previous => ({ ...previous, date: e.target.value }))} /><button className="activity-primary-button">追加する</button></form>
+        <section className="budget-card"><h2>入出金一覧</h2>{budgetItems.length ? <ul className="budget-list">{budgetItems.map(item => <li key={item.id}><span><strong>{item.name}</strong><small>{item.date} · {item.category} · {item.type === 'income' ? '収入' : '支出'}</small></span><b className={item.type === 'income' ? 'budget-income' : ''}>{item.type === 'income' ? '+' : '-'}{item.amount.toLocaleString()}円</b></li>)}</ul> : <p className="budget-empty">入出金はまだありません。</p>}</section>
+      </section> : circleSelectionOpen ? <section className="circle-selection-page" aria-labelledby="circle-selection-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><span>サークル選択</span></nav>
         <h1 id="circle-selection-title">サークルを選択</h1>
         <p className="activity-subtitle">参加するサークルを選択してください</p>
@@ -218,11 +260,27 @@ function App({ onLogout }: { onLogout: () => void }) {
           <h2>{monthName}の予定</h2><p className="schedule-subtitle">{filtered.length}件の予定 · 日時順</p>
           <div className="schedule-list">{filtered.length ? filtered.map(event => <button className="schedule-row" key={event.id} onClick={() => setEventDetail(event)}><span className={`event-dot tone-${event.tone}`}/><span><span className="event-time">{monthIndex + 1}月{event.day}日 · {event.time}</span><span className="event-title">{event.title}</span></span></button>) : <p className="empty-message">{query ? '検索に一致する予定はありません。' : 'この月の予定はありません。'}</p>}</div>
           <section className="calendar-filters"><h3>カレンダーの表示設定</h3>{categories.map(category => <label key={category.key}><span className={`category-square tone-${category.tone}`}/><span>{category.label}</span><input type="checkbox" checked={enabled.includes(category.key)} onChange={() => setEnabled(old => old.includes(category.key) ? old.filter(k => k !== category.key) : [...old, category.key])}/></label>)}</section>
-          <section className="account-card"><div className="account-identity"><span className="avatar">AK</span><div><h3>Akira Kimura</h3><p>akira.k@example.com</p></div></div><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={() => placeholder('プロフィール設定')}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
+          <section className="account-card"><div className="account-identity"><button className="avatar avatar-button" type="button" aria-label="プロフィールアイコンを選択" onClick={() => setAvatarChooserOpen(true)}>{profileImage ? <img className="avatar-image" src={profileImage} alt=""/> : selectedProfileAvatar ? <span aria-hidden="true">{selectedProfileAvatar.illustration}</span> : 'AK'}</button><div><h3>Akira Kimura</h3><p>akira.k@example.com</p><button className="profile-image-change" type="button" onClick={() => setAvatarChooserOpen(true)}>アイコンを変更</button></div></div><input ref={profileImageInput} className="profile-image-input" type="file" accept="image/*" aria-label="プロフィール画像ファイルを選択" onChange={handleProfileImageChange}/><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={() => placeholder('プロフィール設定')}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
         </aside>
       </div>
       </>}
     </main>
+    {avatarChooserOpen && <div className="avatar-dialog-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setAvatarChooserOpen(false); }}>
+      <section className="avatar-dialog" role="dialog" aria-modal="true" aria-labelledby="avatar-dialog-title">
+        <button className="avatar-dialog-close" type="button" aria-label="閉じる" onClick={() => setAvatarChooserOpen(false)}>×</button>
+        <h2 id="avatar-dialog-title" ref={avatarChooserHeading} tabIndex={-1}>アイコンを選択</h2>
+        <p>好きなイラストを選ぶか、自分の画像を使えます。</p>
+        <div className="avatar-options">
+          <button className="avatar-option" type="button" onClick={() => { setProfileImage(null); setSelectedProfileAvatar(null); setAvatarChooserOpen(false); }}>
+            <span className="avatar-option-art avatar-option-initials">AK</span><span>初期アイコン</span>
+          </button>
+          {profileAvatars.map(avatar => <button className="avatar-option" type="button" key={avatar.label} onClick={() => { setProfileImage(null); setSelectedProfileAvatar(avatar); setAvatarChooserOpen(false); }}>
+            <span className="avatar-option-art" style={{ backgroundColor: avatar.color }} aria-hidden="true">{avatar.illustration}</span><span>{avatar.label}</span>
+          </button>)}
+        </div>
+        <button className="avatar-upload-button" type="button" onClick={() => profileImageInput.current?.click()}>画像ファイルを選ぶ</button>
+      </section>
+    </div>}
     {notice && <div className="toast" role="status">{notice}<button aria-label="通知を閉じる" onClick={() => setNotice(null)}><X size={16}/></button></div>}
   </>;
 }
