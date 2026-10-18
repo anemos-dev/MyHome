@@ -4,8 +4,8 @@
 
 ## 開発メンバー
 
-- [@higakota](https://github.com/higakota)
 - [@anemos-dev](https://github.com/anemos-dev)
+- [@higakota](https://github.com/higakota)
 - [@Epsilon9205](https://github.com/Epsilon9205)
 - [@hoseinishiguchiraia-boop](https://github.com/hoseinishiguchiraia-boop)
 - [@yuta-0204](https://github.com/yuta-0204)
