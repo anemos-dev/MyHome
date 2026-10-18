@@ -7,12 +7,13 @@ export const initialRoles: Role[] = [
   { id: 'treasurer', name: '会計' }, { id: 'camp', name: '合宿' },
 ];
 
-export function HandoverPage({ onHome, roles, onAddRole, documents, onAddDocument, onUpdateDocument, onDeleteDocument }: {
+export function HandoverPage({ onHome, onReset, roles, onAddRole, documents, onAddDocument, onUpdateDocument, onDeleteDocument }: {
   onUpdateDocument: (document: HandoverDocument) => void; onDeleteDocument: (id: string) => void;
   documents: HandoverDocument[]; onAddDocument: (document: HandoverDocument) => void;
-  onHome: () => void; roles: Role[]; onAddRole: (role: Role) => void;
+  onHome: () => void; onReset: () => void; roles: Role[]; onAddRole: (role: Role) => void;
 }) {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [roleResetKey, setRoleResetKey] = useState(0);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -35,11 +36,11 @@ export function HandoverPage({ onHome, roles, onAddRole, documents, onAddDocumen
     cancelAdd();
   }
 
-  if (selectedRole) return <RoleDocumentsPage key={selectedRole.id} role={selectedRole} allDocuments={documents} onAddDocument={onAddDocument} onUpdateDocument={onUpdateDocument} onDeleteDocument={onDeleteDocument} onBack={() => setSelectedRole(null)} onHome={onHome}/>;
+  if (selectedRole) return <RoleDocumentsPage key={`${selectedRole.id}-${roleResetKey}`} onReset={() => setRoleResetKey(key => key + 1)} role={selectedRole} allDocuments={documents} onAddDocument={onAddDocument} onUpdateDocument={onUpdateDocument} onDeleteDocument={onDeleteDocument} onBack={() => setSelectedRole(null)} onHome={onHome}/>;
 
   return <section className="handover-page" aria-labelledby="handover-title">
     <nav className="activity-breadcrumb" aria-label="パンくず">
-      <button onClick={onHome}>ホーム</button><span>/</span><span>引き継ぎ</span>
+      <button onClick={onHome}>ホーム</button><span>/</span><button aria-current="page" onClick={onReset}>引き継ぎ</button>
     </nav>
     <div className="handover-heading">
       <div><h1 id="handover-title" tabIndex={-1} ref={heading}>役職を選択</h1><p>登録されている役職（表示確認用のサンプル）</p></div>
