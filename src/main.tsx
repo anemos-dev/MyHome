@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Search, CircleHelp, MoreHorizontal, ChevronLeft, ChevronRight, House, UserRound, Settings, CircleDot, Database, ArrowLeft, X } from 'lucide-react';
 import './styles.css';
 import { HandoverPage, initialRoles } from './HandoverPage';
+import { initialDocuments } from './handoverDocuments';
 
 type Category = 'work' | 'personal' | 'shared';
 type CalendarEvent = { id: number; day: number; time: string; title: string; category: Category; tone: string };
@@ -30,6 +31,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [handoverOpen, setHandoverOpen] = useState(false);
   const [roles, setRoles] = useState(initialRoles);
+  const [documents, setDocuments] = useState(initialDocuments);
   const [query, setQuery] = useState('');
   const [enabled, setEnabled] = useState<Category[]>(['work', 'personal', 'shared']);
   const [notice, setNotice] = useState<string | null>(null);
@@ -70,7 +72,7 @@ function App() {
       </div>
     </header>
     <main className={eventDetail || handoverOpen ? 'activity-main' : undefined}>
-      {handoverOpen ? <HandoverPage roles={roles} onAddRole={role => setRoles(previous => [...previous, role])} onHome={() => setHandoverOpen(false)}/> : eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
+      {handoverOpen ? <HandoverPage documents={documents} onAddDocument={document => setDocuments(previous => [...previous, document])} roles={roles} onAddRole={role => setRoles(previous => [...previous, role])} onHome={() => setHandoverOpen(false)}/> : eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={() => setEventDetail(null)}>‹ ホーム</button><span>/</span><span>活動記録</span></nav>
         <h1 id="activity-title" tabIndex={-1} ref={activityHeading}>活動記録</h1>
         <p className="activity-subtitle">選択した予定の内容 <span className="activity-sample-note">（表示確認用のサンプル・実際の活動記録ではありません）</span></p>

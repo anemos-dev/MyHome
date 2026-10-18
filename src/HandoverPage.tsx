@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { RoleDocumentsPage, type Role } from './RoleDocumentsPage';
+import type { HandoverDocument } from './handoverDocuments';
 
 export const initialRoles: Role[] = [
   { id: 'leader', name: '代表' }, { id: 'deputy', name: '副代表' },
   { id: 'treasurer', name: '会計' }, { id: 'camp', name: '合宿' },
 ];
 
-export function HandoverPage({ onHome, roles, onAddRole }: {
+export function HandoverPage({ onHome, roles, onAddRole, documents, onAddDocument }: {
+  documents: HandoverDocument[]; onAddDocument: (document: HandoverDocument) => void;
   onHome: () => void; roles: Role[]; onAddRole: (role: Role) => void;
 }) {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -32,7 +34,7 @@ export function HandoverPage({ onHome, roles, onAddRole }: {
     cancelAdd();
   }
 
-  if (selectedRole) return <RoleDocumentsPage key={selectedRole.id} role={selectedRole} onBack={() => setSelectedRole(null)} onHome={onHome}/>;
+  if (selectedRole) return <RoleDocumentsPage key={selectedRole.id} role={selectedRole} allDocuments={documents} onAddDocument={onAddDocument} onBack={() => setSelectedRole(null)} onHome={onHome}/>;
 
   return <section className="handover-page" aria-labelledby="handover-title">
     <nav className="activity-breadcrumb" aria-label="パンくず">
@@ -58,7 +60,7 @@ export function HandoverPage({ onHome, roles, onAddRole }: {
         </li>)}
       </ul>
     </section>
-    <p className="handover-note">各役職から資料一覧を開けます。追加した役職はこの画面の表示確認用で、再読み込みすると消えます。役職の削除、資料の本文表示・作成・編集・保存は今後実装予定です。</p>
+    <p className="handover-note">各役職から資料一覧を開けます。追加した役職はこの画面の表示確認用で、再読み込みすると消えます。全役職で資料の一時作成と本文表示ができます。役職の削除、資料の編集・永続保存は今後実装予定です。</p>
     <button className="today-button" onClick={onHome}>‹ ホームに戻る</button>
   </section>;
 }
