@@ -98,18 +98,24 @@ function Root() {
   if (loading) return <main className="login-main"><p role="status">ログイン状態を確認中です…</p></main>;
   return <>
     {authError && <p role="alert">{authError}</p>}
-    {session ? <App key={session.user.id} onLogout={() => { void logout(); }}/>
+    {session ? <App key={session.user.id} user={session.user} onLogout={() => { void logout(); }}/>
       : <LoginPage onLogin={() => { void login(); }} busy={signingIn}/>}
   </>;
 }
-function App({ onLogout }: { onLogout: () => void }) {
+function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; onLogout: () => void }) {
+  // Googleのプロフィール情報は表示専用。権限判定には使用しない。
+  const profileName = [user?.user_metadata.full_name, user?.user_metadata.name]
+    .find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+  const initialDisplayName = profileName?.trim() || user?.email?.split('@')[0] || (user ? 'ユーザー' : 'サンプルユーザー');
+  const [displayName, setDisplayName] = useState(initialDisplayName);
+  const displayEmail = user?.email || (user ? 'メールアドレス未設定' : '認証していません');
+  const initials = Array.from(displayName).slice(0, 2).join('').toLocaleUpperCase();
   const [month, setMonth] = useState(new Date(2026, 0, 1));
   const [calendarEvents, setCalendarEvents] = useState(events);
   const [selectedDay, setSelectedDay] = useState<number | null>(9);
   const [menuOpen, setMenuOpen] = useState(false);
   const [handoverOpen, setHandoverOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [displayName, setDisplayName] = useState('Akira Kimura');
   const [profileRoleIds, setProfileRoleIds] = useState<string[]>([]);
   const [circleSelectionOpen, setCircleSelectionOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
@@ -268,7 +274,7 @@ function App({ onLogout }: { onLogout: () => void }) {
       </div>
     </header>
     <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen ? 'activity-main' : undefined}>
-      {profileOpen ? <ProfileSettingsPage displayName={displayName} email="akira.k@example.com" roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
+      {profileOpen ? <ProfileSettingsPage displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><span>予算管理</span></nav>
         <div className="budget-heading"><div><h1 id="budget-title">予算管理</h1><p className="activity-subtitle">サークルの予算と支出を管理します <span className="activity-sample-note">（表示確認用の一時保存）</span></p></div></div>
         <div className="budget-summary"><label>月の予算<input type="number" min="0" value={monthlyBudget} onChange={e => setMonthlyBudget(Number(e.target.value))} />円</label><div><span>月の残り予算</span><strong className="budget-remaining">{(monthlyBudget - budgetItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)).toLocaleString()}円</strong></div><div><span>サークルの残高</span><strong className="budget-balance">{(budgetItems.reduce((sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount), 0)).toLocaleString()}円</strong></div></div>
@@ -323,7 +329,7 @@ function App({ onLogout }: { onLogout: () => void }) {
           <h2>{monthName}の予定</h2><p className="schedule-subtitle">{filtered.length}件の予定 · 日時順</p>
           <div className="schedule-list">{filtered.length ? filtered.map(event => <button className="schedule-row" key={event.id} onClick={() => setEventDetail(event)}><span className={`event-dot tone-${event.tone}`}/><span><span className="event-time">{monthIndex + 1}月{event.day}日 · {event.time}</span><span className="event-title">{event.title}</span></span></button>) : <p className="empty-message">{query ? '検索に一致する予定はありません。' : 'この月の予定はありません。'}</p>}</div>
           <section className="calendar-filters"><h3>カレンダーの表示設定</h3>{categories.map(category => <label key={category.key}><span className={`category-square tone-${category.tone}`}/><span>{category.label}</span><input type="checkbox" checked={enabled.includes(category.key)} onChange={() => setEnabled(old => old.includes(category.key) ? old.filter(k => k !== category.key) : [...old, category.key])}/></label>)}</section>
-          <section className="account-card"><div className="account-identity"><button className="avatar avatar-button" type="button" aria-label="プロフィールアイコンを選択" onClick={() => setAvatarChooserOpen(true)}>{profileImage ? <img className="avatar-image" src={profileImage} alt=""/> : selectedProfileAvatar ? <span aria-hidden="true">{selectedProfileAvatar.illustration}</span> : 'AK'}</button><div><h3>{displayName}</h3><p>akira.k@example.com</p><p className="account-role-summary">{roles.filter(role => profileRoleIds.includes(role.id)).map(role => role.name).join('・') || '役職未設定'}</p><button className="profile-image-change" type="button" onClick={() => setAvatarChooserOpen(true)}>アイコンを変更</button></div></div><input ref={profileImageInput} className="profile-image-input" type="file" accept="image/*" aria-label="プロフィール画像ファイルを選択" onChange={handleProfileImageChange}/><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={openProfile}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
+          <section className="account-card"><div className="account-identity"><button className="avatar avatar-button" type="button" aria-label="プロフィールアイコンを選択" onClick={() => setAvatarChooserOpen(true)}>{profileImage ? <img className="avatar-image" src={profileImage} alt=""/> : selectedProfileAvatar ? <span aria-hidden="true">{selectedProfileAvatar.illustration}</span> : initials}</button><div><h3>{displayName}</h3><p>{displayEmail}</p><p className="account-role-summary">{roles.filter(role => profileRoleIds.includes(role.id)).map(role => role.name).join('・') || '役職未設定'}</p><button className="profile-image-change" type="button" onClick={() => setAvatarChooserOpen(true)}>アイコンを変更</button></div></div><input ref={profileImageInput} className="profile-image-input" type="file" accept="image/*" aria-label="プロフィール画像ファイルを選択" onChange={handleProfileImageChange}/><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={openProfile}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
         </aside>
       </div>
       </>}
