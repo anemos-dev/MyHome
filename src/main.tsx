@@ -7,6 +7,7 @@ import { initialDocuments } from './handoverDocuments';
 
 type Category = 'work' | 'personal' | 'shared';
 type CalendarEvent = { id: number; day: number; time: string; title: string; category: Category; tone: string };
+type ActivityRecord = { description: string; reflection: string };
 const events: CalendarEvent[] = [
   { id: 1, day: 1, time: '11:00', title: 'Design review', category: 'work', tone: 'purple' },
   { id: 2, day: 2, time: '09:00', title: 'Project sync', category: 'personal', tone: 'teal' },
@@ -44,6 +45,11 @@ function App() {
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const [eventDetail, setEventDetail] = useState<CalendarEvent | null>(null);
+  const [activityRecords, setActivityRecords] = useState<Record<number, ActivityRecord>>({
+    1: { description: '基礎練習を中心に取り組みました。フォームを確認しながら、繰り返し練習しました。', reflection: '次回は今日の気づきを意識して、少しずつ精度を上げていきます。' },
+  });
+  const [activityEditing, setActivityEditing] = useState(false);
+  const [activityDraft, setActivityDraft] = useState<ActivityRecord>({ description: '', reflection: '' });
   const activityHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { if (eventDetail) activityHeading.current?.focus(); }, [eventDetail]);
   useEffect(() => {
@@ -80,6 +86,20 @@ function App() {
     setSelectedCircle(circle);
     goHome();
   }
+  function openActivityEditor(event: CalendarEvent) {
+    const record = activityRecords[event.id] ?? { description: '', reflection: '' };
+    setActivityDraft(record);
+    setActivityEditing(true);
+  }
+  function saveActivity() {
+    if (!eventDetail || !activityDraft.description.trim()) {
+      setNotice('活動内容を入力してください。');
+      return;
+    }
+    setActivityRecords(previous => ({ ...previous, [eventDetail.id]: { description: activityDraft.description.trim(), reflection: activityDraft.reflection.trim() } }));
+    setActivityEditing(false);
+    setNotice('活動記録を保存しました。');
+  }
   return <>
     <header className="header">
       <a className="brand" href="#" onClick={e => { e.preventDefault(); goHome(); }}><span className="brand-mark">H</span><span>ホーム</span></a>
@@ -107,7 +127,7 @@ function App() {
       </section> : handoverOpen ? <HandoverPage documents={documents} onAddDocument={document => setDocuments(previous => [...previous, document])} roles={roles} onAddRole={role => setRoles(previous => [...previous, role])} onHome={goHome}/> : eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={() => setEventDetail(null)}>‹ ホーム</button><span>/</span><span>活動記録</span></nav>
         <h1 id="activity-title" tabIndex={-1} ref={activityHeading}>活動記録</h1>
-        <p className="activity-subtitle">選択した予定の内容 <span className="activity-sample-note">（表示確認用のサンプル・実際の活動記録ではありません）</span></p>
+        <p className="activity-subtitle">選択した予定の内容 <span className="activity-sample-note">（再読み込みするとリセットされるサンプル記録です）</span></p>
         <article className="activity-card">
           <div className="activity-meta">
             <span className="activity-icon" aria-hidden="true">✦</span>
@@ -117,12 +137,15 @@ function App() {
           </div>
           <h2>{eventDetail.title}</h2>
           <hr />
-          <h3>活動内容</h3>
-          <div className="activity-description"><p>基礎練習を中心に取り組みました。フォームを確認しながら、繰り返し練習しました。</p><p>次回は今日の気づきを意識して、少しずつ精度を上げていきます。</p></div>
-          <section className="activity-reflection" aria-labelledby="reflection-title">
-            <h3 id="reflection-title">ふりかえり</h3>
-            <p>できたこと、気づいたことを記録しておきましょう。</p>
-          </section>
+          {activityEditing ? <form className="activity-form" onSubmit={e => { e.preventDefault(); saveActivity(); }}>
+            <label>活動内容<textarea value={activityDraft.description} onChange={e => setActivityDraft(previous => ({ ...previous, description: e.target.value }))} placeholder="活動内容を入力してください" required /></label>
+            <label>ふりかえり<textarea value={activityDraft.reflection} onChange={e => setActivityDraft(previous => ({ ...previous, reflection: e.target.value }))} placeholder="気づいたことや次回へのメモ" /></label>
+            <div className="activity-form-actions"><button type="button" className="today-button" onClick={() => setActivityEditing(false)}>キャンセル</button><button type="submit" className="activity-primary-button">保存する</button></div>
+          </form> : activityRecords[eventDetail.id] ? <>
+            <h3>活動内容</h3><div className="activity-description"><p>{activityRecords[eventDetail.id].description}</p></div>
+            <section className="activity-reflection" aria-labelledby="reflection-title"><h3 id="reflection-title">ふりかえり</h3><p>{activityRecords[eventDetail.id].reflection || 'ふりかえりはまだありません。'}</p></section>
+            <button className="activity-primary-button" onClick={() => openActivityEditor(eventDetail)}>編集する</button>
+          </> : <div className="activity-empty"><p>この予定の活動記録はまだありません。</p><button className="activity-primary-button" onClick={() => openActivityEditor(eventDetail)}>活動記録を作成</button></div>}
           <button className="today-button" onClick={() => setEventDetail(null)}>‹ ホームに戻る</button>
         </article>
       </section> : <>
