@@ -43,3 +43,10 @@
   .activity-reflection { padding: 18px; margin-top: 28px; }
   .activity-sample-note { display: block; }
 }
+/* 日本語ラベルが狭い画面でも収まるようにする */
+.account-links { flex-wrap: wrap; row-gap: 12px; }
+@media (max-width: 520px) {
+  .header .brand { font-size: 18px; gap: 6px; }
+  .header .search { width: 120px; }
+  .header .search input { min-width: 0; }
+}
