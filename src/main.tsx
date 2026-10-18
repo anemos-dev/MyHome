@@ -32,6 +32,7 @@ const circles = [
 ];
 function App() {
   const [month, setMonth] = useState(new Date(2026, 0, 1));
+  const [calendarEvents, setCalendarEvents] = useState(events);
   const [selectedDay, setSelectedDay] = useState<number | null>(9);
   const [menuOpen, setMenuOpen] = useState(false);
   const [handoverOpen, setHandoverOpen] = useState(false);
@@ -50,6 +51,8 @@ function App() {
   });
   const [activityEditing, setActivityEditing] = useState(false);
   const [activityDraft, setActivityDraft] = useState<ActivityRecord>({ description: '', reflection: '' });
+  const [eventFormOpen, setEventFormOpen] = useState(false);
+  const [eventDraft, setEventDraft] = useState({ title: '', time: '10:00', category: 'work' as Category });
   const activityHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { if (eventDetail) activityHeading.current?.focus(); }, [eventDetail]);
   useEffect(() => {
@@ -62,7 +65,7 @@ function App() {
   const year = month.getFullYear(), monthIndex = month.getMonth();
   const monthName = month.toLocaleString('ja-JP', { month: 'long' });
 
-  const filtered = (year === 2026 && monthIndex === 0 ? events : []).filter(e => enabled.includes(e.category) && e.title.toLowerCase().includes(query.toLowerCase()));
+  const filtered = (year === 2026 && monthIndex === 0 ? calendarEvents : []).filter(e => enabled.includes(e.category) && e.title.toLowerCase().includes(query.toLowerCase()));
   const firstDay = new Date(year, monthIndex, 1).getDay();
   const dayCount = new Date(year, monthIndex + 1, 0).getDate();
   const cells = Array.from({ length: 42 }, (_, i) => i >= firstDay && i < firstDay + dayCount ? i - firstDay + 1 : null);
@@ -99,6 +102,13 @@ function App() {
     setActivityRecords(previous => ({ ...previous, [eventDetail.id]: { description: activityDraft.description.trim(), reflection: activityDraft.reflection.trim() } }));
     setActivityEditing(false);
     setNotice('活動記録を保存しました。');
+  }
+  function openEventEditor() { setEventDraft({ title: '', time: '10:00', category: 'work' }); setEventFormOpen(true); }
+  function saveEvent() {
+    if (!selectedDay || !eventDraft.title.trim()) { setNotice('日付と予定名を入力してください。'); return; }
+    const tone = eventDraft.category === 'work' ? 'purple' : eventDraft.category === 'personal' ? 'teal' : 'orange';
+    setCalendarEvents(previous => [...previous, { id: Date.now(), day: selectedDay, time: eventDraft.time, title: eventDraft.title.trim(), category: eventDraft.category, tone }]);
+    setEventFormOpen(false); setNotice(`${monthIndex + 1}月${selectedDay}日に予定を追加しました。`);
   }
   return <>
     <header className="header">
@@ -150,8 +160,9 @@ function App() {
         </article>
       </section> : <>
       <div className="page-heading"><div><h1>{selectedCircle.name}</h1><p>サークルの予定を確認しましょう</p></div>
-        <div className="month-controls"><button className="today-button" onClick={() => { const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); setSelectedDay(now.getDate()); }}>今日</button><div className="month-navigation"><button className="icon-button bordered" aria-label="前の月" onClick={() => changeMonth(-1)}><ChevronLeft size={20}/></button><h2 aria-live="polite">{year}年{monthName}</h2><button className="icon-button bordered" aria-label="次の月" onClick={() => changeMonth(1)}><ChevronRight size={20}/></button></div></div>
+        <div className="month-controls"><button className="today-button" onClick={() => { const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); setSelectedDay(now.getDate()); }}>今日</button><button className="add-event-button" onClick={openEventEditor}>＋ 予定を追加</button><div className="month-navigation"><button className="icon-button bordered" aria-label="前の月" onClick={() => changeMonth(-1)}><ChevronLeft size={20}/></button><h2 aria-live="polite">{year}年{monthName}</h2><button className="icon-button bordered" aria-label="次の月" onClick={() => changeMonth(1)}><ChevronRight size={20}/></button></div></div>
       </div>
+      {eventFormOpen && <form className="event-form" onSubmit={e => { e.preventDefault(); saveEvent(); }}><h2>予定を追加</h2><p>{monthIndex + 1}月{selectedDay ?? '―'}日の予定</p><label>予定名<input value={eventDraft.title} onChange={e => setEventDraft(previous => ({ ...previous, title: e.target.value }))} placeholder="予定名を入力" autoFocus required /></label><label>時刻<input type="time" value={eventDraft.time} onChange={e => setEventDraft(previous => ({ ...previous, time: e.target.value }))} required /></label><label>カテゴリ<select value={eventDraft.category} onChange={e => setEventDraft(previous => ({ ...previous, category: e.target.value as Category }))}>{categories.map(category => <option key={category.key} value={category.key}>{category.label}</option>)}</select></label><div className="event-form-actions"><button type="button" className="today-button" onClick={() => setEventFormOpen(false)}>キャンセル</button><button type="submit" className="activity-primary-button">保存する</button></div></form>}
       <div className="dashboard">
         <section className="calendar-card" aria-label={`${year}年${monthIndex + 1}月のカレンダー`}>
           <div className="weekdays">{['日', '月', '火', '水', '木', '金', '土'].map(day => <span key={day}>{day}</span>)}</div>
