@@ -8,6 +8,7 @@ import { LoginPage } from './LoginPage';
 
 type Category = 'work' | 'personal' | 'shared';
 type CalendarEvent = { id: number; day: number; time: string; title: string; category: Category; tone: string };
+type ActivityRecord = { description: string; reflection: string };
 const events: CalendarEvent[] = [
   { id: 1, day: 1, time: '11:00', title: 'Design review', category: 'work', tone: 'purple' },
   { id: 2, day: 2, time: '09:00', title: 'Project sync', category: 'personal', tone: 'teal' },
@@ -37,6 +38,7 @@ function Root() {
 }
 function App({ onLogout }: { onLogout: () => void }) {
   const [month, setMonth] = useState(new Date(2026, 0, 1));
+  const [calendarEvents, setCalendarEvents] = useState(events);
   const [selectedDay, setSelectedDay] = useState<number | null>(9);
   const [menuOpen, setMenuOpen] = useState(false);
   const [handoverOpen, setHandoverOpen] = useState(false);
@@ -50,6 +52,13 @@ function App({ onLogout }: { onLogout: () => void }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const [eventDetail, setEventDetail] = useState<CalendarEvent | null>(null);
+  const [activityRecords, setActivityRecords] = useState<Record<number, ActivityRecord>>({
+    1: { description: '基礎練習を中心に取り組みました。フォームを確認しながら、繰り返し練習しました。', reflection: '次回は今日の気づきを意識して、少しずつ精度を上げていきます。' },
+  });
+  const [activityEditing, setActivityEditing] = useState(false);
+  const [activityDraft, setActivityDraft] = useState<ActivityRecord>({ description: '', reflection: '' });
+  const [eventFormOpen, setEventFormOpen] = useState(false);
+  const [eventDraft, setEventDraft] = useState({ title: '', time: '10:00', category: 'work' as Category });
   const activityHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { if (eventDetail) activityHeading.current?.focus(); }, [eventDetail]);
   useEffect(() => {
@@ -62,7 +71,7 @@ function App({ onLogout }: { onLogout: () => void }) {
   const year = month.getFullYear(), monthIndex = month.getMonth();
   const monthName = month.toLocaleString('ja-JP', { month: 'long' });
 
-  const filtered = (year === 2026 && monthIndex === 0 ? events : []).filter(e => enabled.includes(e.category) && e.title.toLowerCase().includes(query.toLowerCase()));
+  const filtered = (year === 2026 && monthIndex === 0 ? calendarEvents : []).filter(e => enabled.includes(e.category) && e.title.toLowerCase().includes(query.toLowerCase()));
   const firstDay = new Date(year, monthIndex, 1).getDay();
   const dayCount = new Date(year, monthIndex + 1, 0).getDate();
   const cells = Array.from({ length: 42 }, (_, i) => i >= firstDay && i < firstDay + dayCount ? i - firstDay + 1 : null);
@@ -85,6 +94,27 @@ function App({ onLogout }: { onLogout: () => void }) {
   function selectCircle(circle: typeof circles[number]) {
     setSelectedCircle(circle);
     goHome();
+  }
+  function openActivityEditor(event: CalendarEvent) {
+    const record = activityRecords[event.id] ?? { description: '', reflection: '' };
+    setActivityDraft(record);
+    setActivityEditing(true);
+  }
+  function saveActivity() {
+    if (!eventDetail || !activityDraft.description.trim()) {
+      setNotice('活動内容を入力してください。');
+      return;
+    }
+    setActivityRecords(previous => ({ ...previous, [eventDetail.id]: { description: activityDraft.description.trim(), reflection: activityDraft.reflection.trim() } }));
+    setActivityEditing(false);
+    setNotice('活動記録を保存しました。');
+  }
+  function openEventEditor(day = selectedDay) { if (day) setSelectedDay(day); setEventDraft({ title: '', time: '10:00', category: 'work' }); setEventFormOpen(true); }
+  function saveEvent() {
+    if (!selectedDay || !eventDraft.title.trim()) { setNotice('日付と予定名を入力してください。'); return; }
+    const tone = eventDraft.category === 'work' ? 'purple' : eventDraft.category === 'personal' ? 'teal' : 'orange';
+    setCalendarEvents(previous => [...previous, { id: Date.now(), day: selectedDay, time: eventDraft.time, title: eventDraft.title.trim(), category: eventDraft.category, tone }]);
+    setEventFormOpen(false); setNotice(`${monthIndex + 1}月${selectedDay}日に予定を追加しました。`);
   }
   return <>
     <header className="header">
@@ -113,7 +143,7 @@ function App({ onLogout }: { onLogout: () => void }) {
       </section> : handoverOpen ? <HandoverPage documents={documents} onAddDocument={document => setDocuments(previous => [...previous, document])} roles={roles} onAddRole={role => setRoles(previous => [...previous, role])} onHome={goHome}/> : eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={() => setEventDetail(null)}>‹ ホーム</button><span>/</span><span>活動記録</span></nav>
         <h1 id="activity-title" tabIndex={-1} ref={activityHeading}>活動記録</h1>
-        <p className="activity-subtitle">選択した予定の内容 <span className="activity-sample-note">（表示確認用のサンプル・実際の活動記録ではありません）</span></p>
+        <p className="activity-subtitle">選択した予定の内容 <span className="activity-sample-note">（再読み込みするとリセットされるサンプル記録です）</span></p>
         <article className="activity-card">
           <div className="activity-meta">
             <span className="activity-icon" aria-hidden="true">✦</span>
@@ -123,24 +153,28 @@ function App({ onLogout }: { onLogout: () => void }) {
           </div>
           <h2>{eventDetail.title}</h2>
           <hr />
-          <h3>活動内容</h3>
-          <div className="activity-description"><p>基礎練習を中心に取り組みました。フォームを確認しながら、繰り返し練習しました。</p><p>次回は今日の気づきを意識して、少しずつ精度を上げていきます。</p></div>
-          <section className="activity-reflection" aria-labelledby="reflection-title">
-            <h3 id="reflection-title">ふりかえり</h3>
-            <p>できたこと、気づいたことを記録しておきましょう。</p>
-          </section>
+          {activityEditing ? <form className="activity-form" onSubmit={e => { e.preventDefault(); saveActivity(); }}>
+            <label>活動内容<textarea value={activityDraft.description} onChange={e => setActivityDraft(previous => ({ ...previous, description: e.target.value }))} placeholder="活動内容を入力してください" required /></label>
+            <label>ふりかえり<textarea value={activityDraft.reflection} onChange={e => setActivityDraft(previous => ({ ...previous, reflection: e.target.value }))} placeholder="気づいたことや次回へのメモ" /></label>
+            <div className="activity-form-actions"><button type="button" className="today-button" onClick={() => setActivityEditing(false)}>キャンセル</button><button type="submit" className="activity-primary-button">保存する</button></div>
+          </form> : activityRecords[eventDetail.id] ? <>
+            <h3>活動内容</h3><div className="activity-description"><p>{activityRecords[eventDetail.id].description}</p></div>
+            <section className="activity-reflection" aria-labelledby="reflection-title"><h3 id="reflection-title">ふりかえり</h3><p>{activityRecords[eventDetail.id].reflection || 'ふりかえりはまだありません。'}</p></section>
+            <button className="activity-primary-button" onClick={() => openActivityEditor(eventDetail)}>編集する</button>
+          </> : <div className="activity-empty"><p>この予定の活動記録はまだありません。</p><button className="activity-primary-button" onClick={() => openActivityEditor(eventDetail)}>活動記録を作成</button></div>}
           <button className="today-button" onClick={() => setEventDetail(null)}>‹ ホームに戻る</button>
         </article>
       </section> : <>
       <div className="page-heading"><div><h1>{selectedCircle.name}</h1><p>サークルの予定を確認しましょう</p></div>
         <div className="month-controls"><button className="today-button" onClick={() => { const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); setSelectedDay(now.getDate()); }}>今日</button><div className="month-navigation"><button className="icon-button bordered" aria-label="前の月" onClick={() => changeMonth(-1)}><ChevronLeft size={20}/></button><h2 aria-live="polite">{year}年{monthName}</h2><button className="icon-button bordered" aria-label="次の月" onClick={() => changeMonth(1)}><ChevronRight size={20}/></button></div></div>
       </div>
+      {eventFormOpen && <form className="event-form" onSubmit={e => { e.preventDefault(); saveEvent(); }}><h2>予定を追加</h2><p>{monthIndex + 1}月{selectedDay ?? '―'}日の予定</p><label>予定名<input value={eventDraft.title} onChange={e => setEventDraft(previous => ({ ...previous, title: e.target.value }))} placeholder="予定名を入力" autoFocus required /></label><label>時刻<input type="time" value={eventDraft.time} onChange={e => setEventDraft(previous => ({ ...previous, time: e.target.value }))} required /></label><label>カテゴリ<select value={eventDraft.category} onChange={e => setEventDraft(previous => ({ ...previous, category: e.target.value as Category }))}>{categories.map(category => <option key={category.key} value={category.key}>{category.label}</option>)}</select></label><div className="event-form-actions"><button type="button" className="today-button" onClick={() => setEventFormOpen(false)}>キャンセル</button><button type="submit" className="event-submit-button">追加する</button></div></form>}
       <div className="dashboard">
         <section className="calendar-card" aria-label={`${year}年${monthIndex + 1}月のカレンダー`}>
           <div className="weekdays">{['日', '月', '火', '水', '木', '金', '土'].map(day => <span key={day}>{day}</span>)}</div>
-          <div className="calendar-grid">{cells.map((day, i) => <div className={`day-cell ${day === null ? 'empty' : ''}`} key={i}>{day !== null && <>
-            <button className={`day-number ${selectedDay === day ? 'selected' : ''}`} aria-label={`${monthIndex + 1}月${day}日`} aria-pressed={selectedDay === day} onClick={() => setSelectedDay(day)}>{day}</button>
-            <div className="day-events">{filtered.filter(e => e.day === day).map(event => <button className={`event-chip tone-${event.tone}`} key={event.id} title={`${event.time} ${event.title}`} onClick={() => setEventDetail(event)}>{event.title === 'Lunch with Mina' ? 'Lunch · Mina' : event.title}</button>)}</div>
+          <div className="calendar-grid">{cells.map((day, i) => <div className={`day-cell ${day === null ? 'empty' : ''}`} key={i} onClick={() => day !== null && openEventEditor(day)}>{day !== null && <>
+            <button className={`day-number ${selectedDay === day ? 'selected' : ''}`} aria-label={`${monthIndex + 1}月${day}日に予定を追加`} aria-pressed={selectedDay === day} onClick={e => { e.stopPropagation(); openEventEditor(day); }}>{day}</button>
+            <div className="day-events">{filtered.filter(e => e.day === day).map(event => <button className={`event-chip tone-${event.tone}`} key={event.id} title={`${event.time} ${event.title}`} onClick={e => { e.stopPropagation(); setEventDetail(event); }}>{event.title === 'Lunch with Mina' ? 'Lunch · Mina' : event.title}</button>)}</div>
           </>}</div>)}</div>
         </section>
         <aside className="schedule-card">
