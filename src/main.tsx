@@ -8,7 +8,7 @@ import { initialDocuments } from './handoverDocuments';
 import { LoginPage } from './LoginPage';
 import { ProfileSettingsPage } from './ProfileSettingsPage';
 import { ProfileContext, currentUserId, RecordAttributionView, type RecordAttribution } from './RecordAttribution';
-import { supabase } from './supabase';
+import { supabase, supabaseConfigurationError } from './supabase';
 
 type Category = 'work' | 'personal' | 'shared';
 type CalendarEvent = { id: number; day: number; time: string; title: string; category: Category; tone: string };
@@ -51,7 +51,9 @@ function Root() {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
+  const [preview, setPreview] = useState(false);
   useEffect(() => {
+    if (!supabase) { setLoading(false); return; }
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       setSession(currentSession);
       setLoading(false);
@@ -59,6 +61,7 @@ function Root() {
     return () => subscription.unsubscribe();
   }, []);
   async function login() {
+    if (!supabase) return;
     setAuthError(null);
     setSigningIn(true);
     try {
@@ -72,6 +75,7 @@ function Root() {
     }
   }
   async function logout() {
+    if (!supabase) return;
     setAuthError(null);
     try {
       const { error } = await supabase.auth.signOut({ scope: 'local' });
@@ -80,6 +84,17 @@ function Root() {
       setAuthError(error instanceof Error ? error.message : 'ログアウトに失敗しました。');
     }
   }
+  if (preview && import.meta.env.DEV) return <>
+    <div className="preview-banner" role="status">表示確認用サンプル・認証していません。データは一時保存です。<button onClick={() => setPreview(false)}>確認を終了</button></div>
+    <App onLogout={() => setPreview(false)}/>
+  </>;
+  if (!supabase) return <main className="login-main"><section className="login-card" aria-labelledby="auth-config-title">
+    <span className="brand-mark login-mark" aria-hidden="true">H</span>
+    <h1 id="auth-config-title">ログイン設定が必要です</h1>
+    <p className="login-lead" role="alert">{supabaseConfigurationError}</p>
+    <p className="login-note">開発担当者から接続設定を受け取り、.env.local に設定して開発サーバーを再起動してください。</p>
+    {import.meta.env.DEV && <button className="google-button" onClick={() => setPreview(true)}>サンプル画面を確認</button>}
+  </section></main>;
   if (loading) return <main className="login-main"><p role="status">ログイン状態を確認中です…</p></main>;
   return <>
     {authError && <p role="alert">{authError}</p>}
