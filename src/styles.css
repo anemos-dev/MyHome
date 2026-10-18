@@ -210,6 +210,14 @@
 .google-button { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 46px; margin-top: 28px; background: #fff; border: 1px solid #dfe5f0; border-radius: 10px; font-size: 14px; font-weight: 600; }
 .google-button:hover { background: #f6f7fb; }
 .login-note { margin-top: 16px; font-size: 12px; line-height: 1.7; }
+.legal-links { display: flex; justify-content: center; gap: 18px; margin-top: 18px; font-size: 12px; }
+.legal-main { min-height: 100vh; padding: 40px 16px; background: #f6f7fb; color: #202b42; }
+.legal-card { width: min(760px, 100%); margin: 0 auto; padding: 40px clamp(22px, 6vw, 64px); background: #fff; border: 1px solid #dfe5f0; border-radius: 17px; line-height: 1.8; }
+.legal-card h1 { margin: 20px 0 4px; font-size: 28px; }
+.legal-card h2 { margin: 28px 0 8px; font-size: 18px; }
+.legal-card p { margin: 8px 0; }
+.legal-updated { color: #71809a; font-size: 13px; }
+.legal-home-link { font-size: 14px; }
 @media (max-width: 520px) { .login-card { padding: 32px 20px 28px; } }
 
 .profile-card { margin-top: 24px; max-width: 720px; padding: 32px; background: #fff; border: 1px solid var(--activity-border); border-radius: 16px; }

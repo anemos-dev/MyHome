@@ -9,6 +9,7 @@ import { LoginPage } from './LoginPage';
 import { ProfileSettingsPage } from './ProfileSettingsPage';
 import { ProfileContext, currentUserId, RecordAttributionView, type RecordAttribution } from './RecordAttribution';
 import { supabase, supabaseConfigurationError } from './supabase';
+import { LegalPage } from './LegalPage';
 
 type Category = 'work' | 'personal' | 'shared';
 type CalendarEvent = { id: number; dbId?: string; circleId?: string; day: number; time: string; title: string; category: Category; tone: string };
@@ -60,6 +61,8 @@ function Root() {
     });
     return () => subscription.unsubscribe();
   }, []);
+  if (window.location.pathname === '/privacy' || window.location.pathname === '/privacy/') return <LegalPage kind="privacy"/>;
+  if (window.location.pathname === '/terms' || window.location.pathname === '/terms/') return <LegalPage kind="terms"/>;
   async function login() {
     if (!supabase) return;
     setAuthError(null);
