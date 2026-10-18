@@ -1,0 +1,12 @@
+.permissions-page { max-width: 960px; margin: 0 auto; padding: 28px 0; }
+.permissions-page h1 { margin: 24px 0 12px; }
+.permissions-page > p { line-height: 1.7; }
+.permissions-circle { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin: 24px 0; }
+.permissions-circle select { padding: 12px; border: 1px solid #dce1f0; border-radius: 10px; max-width: 100%; background: white; }
+.permissions-members { list-style: none; padding: 0; }
+.permissions-members li { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px; margin: 12px 0; background: white; border: 1px solid #dce1f0; border-radius: 14px; }
+.permissions-members li > div { min-width: 0; }
+.permissions-members small { display: block; overflow-wrap: anywhere; color: #65718a; margin: 8px 0; }
+.permissions-page button:disabled { opacity: .55; cursor: not-allowed; }
+.permissions-page [role=alert] { padding: 14px; color: #a32626; background: #fff0f0; border-radius: 10px; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .permissions-members li { flex-direction: column; align-items: stretch; } }

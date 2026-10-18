@@ -34,12 +34,16 @@
 .activity-card .today-button { font-size: 12px; padding: 0 16px; border-color: var(--activity-border); }
 .activity-primary-button { min-height: 38px; padding: 0 16px; border-radius: 9px; background: var(--activity-purple); color: #fff; font-size: 12px; }
 .day-cell:not(.empty) { cursor: pointer; }
-.event-form { display: grid; grid-template-columns: 1.5fr repeat(4, 1fr) auto; align-items: end; gap: 14px; margin: -14px 0 24px; padding: 18px; background: #fff; border: 1px solid #dfe5f0; border-radius: 14px; }
+.event-form { display: grid; grid-template-columns: 1.5fr repeat(4, 1fr) 1.5fr; align-items: end; gap: 14px; margin: -14px 0 24px; padding: 18px; background: #fff; border: 1px solid #dfe5f0; border-radius: 14px; }
 .event-form h2 { grid-column: 1 / -1; font-size: 17px; }
 .event-form > p { grid-column: 1 / -1; margin-top: -10px; font-size: 12px; }
 .event-form label { display: grid; gap: 6px; font-size: 12px; }
 .event-form input, .event-form select { min-height: 38px; padding: 0 10px; border: 1px solid #dfe5f0; border-radius: 8px; color: #222d43; background: #fff; }
-.event-form-actions { display: flex; gap: 8px; }
+.event-form-actions { display: flex; gap: 8px; grid-column: 1 / -1; justify-content: flex-end; }
+.event-category-add { display: flex; gap: 8px; align-items: end; }
+.event-category-add label { flex: 1; }
+.event-category-add button { min-height: 38px; }
+.calendar-filters-empty { margin: 0; font-size: 12px; color: #7b8496; }
 .event-submit-button { min-height: 38px; padding: 0 18px; border: 0; border-radius: 9px; background: #5c4fdb; color: #fff; font-size: 12px; white-space: nowrap; }
 .event-submit-button:hover { filter: brightness(.95); }
 .event-detail-edit { margin: 12px 0; }
@@ -297,3 +301,5 @@
 .circle-home-logo { width: 44px; height: 44px; border-radius: 10px; object-fit: contain; flex-shrink: 0; background: #fff; }
 .circle-choice-logo { width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
 .circle-option strong { overflow-wrap: anywhere; }
+
+.tone-gray{--tone:#8a94a6;--tint:#eef1f6}
