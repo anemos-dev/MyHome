@@ -6,10 +6,12 @@ import './profile-image.css';
 import { HandoverPage, initialRoles } from './HandoverPage';
 import { initialDocuments } from './handoverDocuments';
 import { LoginPage } from './LoginPage';
+import { ProfileSettingsPage } from './ProfileSettingsPage';
+import { ProfileContext, currentUserId, RecordAttributionView, type RecordAttribution } from './RecordAttribution';
 
 type Category = 'work' | 'personal' | 'shared';
 type CalendarEvent = { id: number; day: number; time: string; title: string; category: Category; tone: string };
-type ActivityRecord = { description: string; reflection: string };
+type ActivityRecord = { description: string; reflection: string } & RecordAttribution;
 const events: CalendarEvent[] = [
   { id: 1, day: 1, time: '11:00', title: 'Design review', category: 'work', tone: 'purple' },
   { id: 2, day: 2, time: '09:00', title: 'Project sync', category: 'personal', tone: 'teal' },
@@ -54,6 +56,9 @@ function App({ onLogout }: { onLogout: () => void }) {
   const [selectedDay, setSelectedDay] = useState<number | null>(9);
   const [menuOpen, setMenuOpen] = useState(false);
   const [handoverOpen, setHandoverOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [displayName, setDisplayName] = useState('Akira Kimura');
+  const [profileRoleIds, setProfileRoleIds] = useState<string[]>([]);
   const [circleSelectionOpen, setCircleSelectionOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [monthlyBudget, setMonthlyBudget] = useState(100000);
@@ -84,7 +89,7 @@ function App({ onLogout }: { onLogout: () => void }) {
   useEffect(() => { if (eventDetail) activityHeading.current?.focus(); }, [eventDetail]);
   useEffect(() => {
     function dismiss(e: PointerEvent) { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); }
-    function keyboard(e: KeyboardEvent) { if (e.key === 'Escape') { if (avatarChooserOpen) { setAvatarChooserOpen(false); } else { setMenuOpen(false); setEventDetail(null); setHandoverOpen(false); menuButton.current?.focus(); } } }
+    function keyboard(e: KeyboardEvent) { if (e.key === 'Escape') { if (avatarChooserOpen) { setAvatarChooserOpen(false); } else { setMenuOpen(false); setEventDetail(null); setHandoverOpen(false); setProfileOpen(false); menuButton.current?.focus(); } } }
     document.addEventListener('pointerdown', dismiss); document.addEventListener('keydown', keyboard);
     return () => { document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', keyboard); };
   }, [avatarChooserOpen]);
@@ -111,7 +116,11 @@ function App({ onLogout }: { onLogout: () => void }) {
     }
     e.currentTarget.value = '';
   }
+  function openProfile() {
+    setProfileOpen(true); setBudgetOpen(false); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false);
+  }
   function goHome() {
+    setProfileOpen(false);
     setMonth(new Date(2026, 0, 1));
     setSelectedDay(9);
     setCircleSelectionOpen(false);
@@ -121,12 +130,14 @@ function App({ onLogout }: { onLogout: () => void }) {
     setMenuOpen(false);
   }
   function openCircleSelection() {
+    setProfileOpen(false);
     setCircleSelectionOpen(true);
     setHandoverOpen(false);
     setEventDetail(null);
     setMenuOpen(false);
   }
-  function openBudget() { setBudgetOpen(true); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
+  function openBudget() {
+    setProfileOpen(false); setBudgetOpen(true); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
   function selectCircle(circle: typeof circles[number]) {
     setSelectedCircle(circle);
     goHome();
@@ -141,7 +152,13 @@ function App({ onLogout }: { onLogout: () => void }) {
       setNotice('活動内容を入力してください。');
       return;
     }
-    setActivityRecords(previous => ({ ...previous, [eventDetail.id]: { description: activityDraft.description.trim(), reflection: activityDraft.reflection.trim() } }));
+    const timestamp = new Date().toISOString();
+    setActivityRecords(previous => ({ ...previous, [eventDetail.id]: {
+      ...previous[eventDetail.id],
+      ...(!previous[eventDetail.id] ? { createdBy: currentUserId, createdAt: timestamp } : {}),
+      description: activityDraft.description.trim(), reflection: activityDraft.reflection.trim(),
+      updatedBy: currentUserId, updatedAt: timestamp,
+    } }));
     setActivityEditing(false);
     setNotice('活動記録を保存しました。');
   }
@@ -152,7 +169,7 @@ function App({ onLogout }: { onLogout: () => void }) {
     setCalendarEvents(previous => [...previous, { id: Date.now(), day: selectedDay, time: eventDraft.time, title: eventDraft.title.trim(), category: eventDraft.category, tone }]);
     setEventFormOpen(false); setNotice(`${monthIndex + 1}月${selectedDay}日に予定を追加しました。`);
   }
-  return <>
+  return <ProfileContext.Provider value={{ userId: currentUserId, displayName }}>
     <header className="header">
       <a className="brand" href="#" onClick={e => { e.preventDefault(); goHome(); }}><span className="brand-mark">H</span><span>ホーム</span></a>
       <div className="header-actions">
@@ -161,14 +178,14 @@ function App({ onLogout }: { onLogout: () => void }) {
         <div className="menu-anchor" ref={menuRef}>
           <button ref={menuButton} className={`menu-trigger icon-button ${menuOpen ? 'active' : ''}`} aria-label="メニュー" aria-expanded={menuOpen} aria-controls="home-menu" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={26}/></button>
           {menuOpen && <nav id="home-menu" className="menu-panel" aria-label="ホームメニュー">
-            <div className="menu-heading"><span>メニュー</span><span>Akira Kimura</span></div>
-            {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!circleSelectionOpen && !budgetOpen && (handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setHandoverOpen(true); } else if (label === '予算管理') openBudget(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
+            <div className="menu-heading"><span>メニュー</span><span className="menu-user-name">{displayName}</span></div>
+            {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!circleSelectionOpen && !budgetOpen && (profileOpen ? label === 'プロフィール設定' : handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setProfileOpen(false); setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setHandoverOpen(true); } else if (label === 'プロフィール設定') openProfile(); else if (label === '予算管理') openBudget(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
           </nav>}
         </div>
       </div>
     </header>
-    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen ? 'activity-main' : undefined}>
-      {budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
+    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen ? 'activity-main' : undefined}>
+      {profileOpen ? <ProfileSettingsPage displayName={displayName} email="akira.k@example.com" roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><span>予算管理</span></nav>
         <div className="budget-heading"><div><h1 id="budget-title">予算管理</h1><p className="activity-subtitle">サークルの予算と支出を管理します <span className="activity-sample-note">（表示確認用の一時保存）</span></p></div></div>
         <div className="budget-summary"><label>月の予算<input type="number" min="0" value={monthlyBudget} onChange={e => setMonthlyBudget(Number(e.target.value))} />円</label><div><span>月の残り予算</span><strong className="budget-remaining">{(monthlyBudget - budgetItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)).toLocaleString()}円</strong></div><div><span>サークルの残高</span><strong className="budget-balance">{(budgetItems.reduce((sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount), 0)).toLocaleString()}円</strong></div></div>
@@ -200,7 +217,7 @@ function App({ onLogout }: { onLogout: () => void }) {
             <label>ふりかえり<textarea value={activityDraft.reflection} onChange={e => setActivityDraft(previous => ({ ...previous, reflection: e.target.value }))} placeholder="気づいたことや次回へのメモ" /></label>
             <div className="activity-form-actions"><button type="button" className="today-button" onClick={() => setActivityEditing(false)}>キャンセル</button><button type="submit" className="activity-primary-button">保存する</button></div>
           </form> : activityRecords[eventDetail.id] ? <>
-            <h3>活動内容</h3><div className="activity-description"><p>{activityRecords[eventDetail.id].description}</p></div>
+            <RecordAttributionView record={activityRecords[eventDetail.id]}/><h3>活動内容</h3><div className="activity-description"><p>{activityRecords[eventDetail.id].description}</p></div>
             <section className="activity-reflection" aria-labelledby="reflection-title"><h3 id="reflection-title">ふりかえり</h3><p>{activityRecords[eventDetail.id].reflection || 'ふりかえりはまだありません。'}</p></section>
             <button className="activity-primary-button" onClick={() => openActivityEditor(eventDetail)}>編集する</button>
           </> : <div className="activity-empty"><p>この予定の活動記録はまだありません。</p><button className="activity-primary-button" onClick={() => openActivityEditor(eventDetail)}>活動記録を作成</button></div>}
@@ -223,7 +240,7 @@ function App({ onLogout }: { onLogout: () => void }) {
           <h2>{monthName}の予定</h2><p className="schedule-subtitle">{filtered.length}件の予定 · 日時順</p>
           <div className="schedule-list">{filtered.length ? filtered.map(event => <button className="schedule-row" key={event.id} onClick={() => setEventDetail(event)}><span className={`event-dot tone-${event.tone}`}/><span><span className="event-time">{monthIndex + 1}月{event.day}日 · {event.time}</span><span className="event-title">{event.title}</span></span></button>) : <p className="empty-message">{query ? '検索に一致する予定はありません。' : 'この月の予定はありません。'}</p>}</div>
           <section className="calendar-filters"><h3>カレンダーの表示設定</h3>{categories.map(category => <label key={category.key}><span className={`category-square tone-${category.tone}`}/><span>{category.label}</span><input type="checkbox" checked={enabled.includes(category.key)} onChange={() => setEnabled(old => old.includes(category.key) ? old.filter(k => k !== category.key) : [...old, category.key])}/></label>)}</section>
-          <section className="account-card"><div className="account-identity"><button className="avatar avatar-button" type="button" aria-label="プロフィールアイコンを選択" onClick={() => setAvatarChooserOpen(true)}>{profileImage ? <img className="avatar-image" src={profileImage} alt=""/> : selectedProfileAvatar ? <span aria-hidden="true">{selectedProfileAvatar.illustration}</span> : 'AK'}</button><div><h3>Akira Kimura</h3><p>akira.k@example.com</p><button className="profile-image-change" type="button" onClick={() => setAvatarChooserOpen(true)}>アイコンを変更</button></div></div><input ref={profileImageInput} className="profile-image-input" type="file" accept="image/*" aria-label="プロフィール画像ファイルを選択" onChange={handleProfileImageChange}/><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={() => placeholder('プロフィール設定')}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
+          <section className="account-card"><div className="account-identity"><button className="avatar avatar-button" type="button" aria-label="プロフィールアイコンを選択" onClick={() => setAvatarChooserOpen(true)}>{profileImage ? <img className="avatar-image" src={profileImage} alt=""/> : selectedProfileAvatar ? <span aria-hidden="true">{selectedProfileAvatar.illustration}</span> : 'AK'}</button><div><h3>{displayName}</h3><p>akira.k@example.com</p><p className="account-role-summary">{roles.filter(role => profileRoleIds.includes(role.id)).map(role => role.name).join('・') || '役職未設定'}</p><button className="profile-image-change" type="button" onClick={() => setAvatarChooserOpen(true)}>アイコンを変更</button></div></div><input ref={profileImageInput} className="profile-image-input" type="file" accept="image/*" aria-label="プロフィール画像ファイルを選択" onChange={handleProfileImageChange}/><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={openProfile}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
         </aside>
       </div>
       </>}
@@ -245,6 +262,6 @@ function App({ onLogout }: { onLogout: () => void }) {
       </section>
     </div>}
     {notice && <div className="toast" role="status">{notice}<button aria-label="通知を閉じる" onClick={() => setNotice(null)}><X size={16}/></button></div>}
-  </>;
+  </ProfileContext.Provider>;
 }
 createRoot(document.getElementById('root')!).render(<React.StrictMode><Root/></React.StrictMode>);
