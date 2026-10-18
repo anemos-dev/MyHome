@@ -25,11 +25,17 @@ const menuItems = [
   { label: '役職設定', icon: Settings, admin: true }, { label: 'データ管理', icon: Database, admin: true },
   { label: 'サークル選択に戻る', icon: ArrowLeft },
 ];
+const circles = [
+  { id: 'tennis', name: '高体連庭球部', detail: 'テニスサークル · 12人' },
+  { id: 'sample', name: '新歓プロジェクト', detail: 'イベント運営 · 8人' },
+];
 function App() {
   const [month, setMonth] = useState(new Date(2026, 0, 1));
   const [selectedDay, setSelectedDay] = useState<number | null>(9);
   const [menuOpen, setMenuOpen] = useState(false);
   const [handoverOpen, setHandoverOpen] = useState(false);
+  const [circleSelectionOpen, setCircleSelectionOpen] = useState(false);
+  const [selectedCircle, setSelectedCircle] = useState(circles[0]);
   const [roles, setRoles] = useState(initialRoles);
   const [documents, setDocuments] = useState(initialDocuments);
   const [query, setQuery] = useState('');
@@ -56,9 +62,27 @@ function App() {
   const cells = Array.from({ length: 42 }, (_, i) => i >= firstDay && i < firstDay + dayCount ? i - firstDay + 1 : null);
   function changeMonth(delta: number) { setMonth(new Date(year, monthIndex + delta, 1)); setSelectedDay(null); }
   function placeholder(label: string) { setMenuOpen(false); setNotice(`${label}は今後実装予定です。`); }
+  function goHome() {
+    setMonth(new Date(2026, 0, 1));
+    setSelectedDay(9);
+    setCircleSelectionOpen(false);
+    setHandoverOpen(false);
+    setEventDetail(null);
+    setMenuOpen(false);
+  }
+  function openCircleSelection() {
+    setCircleSelectionOpen(true);
+    setHandoverOpen(false);
+    setEventDetail(null);
+    setMenuOpen(false);
+  }
+  function selectCircle(circle: typeof circles[number]) {
+    setSelectedCircle(circle);
+    goHome();
+  }
   return <>
     <header className="header">
-      <a className="brand" href="#" onClick={e => { e.preventDefault(); setMonth(new Date(2026, 0, 1)); setSelectedDay(9); setEventDetail(null); setHandoverOpen(false); setMenuOpen(false); }}><span className="brand-mark">H</span><span>ホーム</span></a>
+      <a className="brand" href="#" onClick={e => { e.preventDefault(); goHome(); }}><span className="brand-mark">H</span><span>ホーム</span></a>
       <div className="header-actions">
         <label className="search"><Search size={17}/><input aria-label="予定を検索" placeholder="予定を検索" value={query} onChange={e => setQuery(e.target.value)}/></label>
         <button className="help icon-button" aria-label="ヘルプ" onClick={() => setNotice('月の矢印で移動、予定をクリックして詳細を確認できます。')}><CircleHelp size={20}/></button>
@@ -66,13 +90,21 @@ function App() {
           <button ref={menuButton} className={`menu-trigger icon-button ${menuOpen ? 'active' : ''}`} aria-label="メニュー" aria-expanded={menuOpen} aria-controls="home-menu" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={26}/></button>
           {menuOpen && <nav id="home-menu" className="menu-panel" aria-label="ホームメニュー">
             <div className="menu-heading"><span>メニュー</span><span>Akira Kimura</span></div>
-            {menuItems.map(({ label, icon: Icon, admin }, i) => <button key={label} className={`menu-item ${(handoverOpen ? i === 1 : i === 0) ? 'current' : ''}`} onClick={() => { if (i === 0 || i === 1) { setMenuOpen(false); setEventDetail(null); setHandoverOpen(i === 1); } else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
+            {menuItems.map(({ label, icon: Icon, admin }, i) => <button key={label} className={`menu-item ${(!circleSelectionOpen && (handoverOpen ? i === 1 : i === 0)) ? 'current' : ''}`} onClick={() => { if (i === 0) goHome(); else if (i === 1) { setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setHandoverOpen(true); } else if (i === 6) openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
           </nav>}
         </div>
       </div>
     </header>
-    <main className={eventDetail || handoverOpen ? 'activity-main' : undefined}>
-      {handoverOpen ? <HandoverPage documents={documents} onAddDocument={document => setDocuments(previous => [...previous, document])} roles={roles} onAddRole={role => setRoles(previous => [...previous, role])} onHome={() => setHandoverOpen(false)}/> : eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
+    <main className={eventDetail || handoverOpen || circleSelectionOpen ? 'activity-main' : undefined}>
+      {circleSelectionOpen ? <section className="circle-selection-page" aria-labelledby="circle-selection-title">
+        <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><span>サークル選択</span></nav>
+        <h1 id="circle-selection-title">サークルを選択</h1>
+        <p className="activity-subtitle">参加するサークルを選択してください</p>
+        <div className="circle-selection-card">
+          <p className="circle-sample-note">表示確認用のサンプルです。選択内容は再読み込みするとリセットされます。</p>
+          <div className="circle-list" role="list">{circles.map(circle => <button className={`circle-option ${selectedCircle.id === circle.id ? 'selected' : ''}`} key={circle.id} onClick={() => selectCircle(circle)}><span className="circle-option-mark" aria-hidden="true">{circle.name.charAt(0)}</span><span><strong>{circle.name}</strong><small>{circle.detail}</small></span><span className="circle-option-check" aria-hidden="true">{selectedCircle.id === circle.id ? '選択中' : '選択'}</span></button>)}</div>
+        </div>
+      </section> : handoverOpen ? <HandoverPage documents={documents} onAddDocument={document => setDocuments(previous => [...previous, document])} roles={roles} onAddRole={role => setRoles(previous => [...previous, role])} onHome={goHome}/> : eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={() => setEventDetail(null)}>‹ ホーム</button><span>/</span><span>活動記録</span></nav>
         <h1 id="activity-title" tabIndex={-1} ref={activityHeading}>活動記録</h1>
         <p className="activity-subtitle">選択した予定の内容 <span className="activity-sample-note">（表示確認用のサンプル・実際の活動記録ではありません）</span></p>
@@ -94,7 +126,7 @@ function App() {
           <button className="today-button" onClick={() => setEventDetail(null)}>‹ ホームに戻る</button>
         </article>
       </section> : <>
-      <div className="page-heading"><div><h1>高体連庭球部</h1><p>サークルの予定を確認しましょう</p></div>
+      <div className="page-heading"><div><h1>{selectedCircle.name}</h1><p>サークルの予定を確認しましょう</p></div>
         <div className="month-controls"><button className="today-button" onClick={() => { const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); setSelectedDay(now.getDate()); }}>今日</button><div className="month-navigation"><button className="icon-button bordered" aria-label="前の月" onClick={() => changeMonth(-1)}><ChevronLeft size={20}/></button><h2 aria-live="polite">{year}年{monthName}</h2><button className="icon-button bordered" aria-label="次の月" onClick={() => changeMonth(1)}><ChevronRight size={20}/></button></div></div>
       </div>
       <div className="dashboard">
