@@ -4,6 +4,7 @@ import { Search, CircleHelp, MoreHorizontal, ChevronLeft, ChevronRight, House, U
 import './styles.css';
 import { HandoverPage, initialRoles } from './HandoverPage';
 import { initialDocuments } from './handoverDocuments';
+import { LoginPage } from './LoginPage';
 
 type Category = 'work' | 'personal' | 'shared';
 type CalendarEvent = { id: number; day: number; time: string; title: string; category: Category; tone: string };
@@ -29,7 +30,12 @@ const circles = [
   { id: 'tennis', name: '高体連庭球部', detail: 'テニスサークル · 12人' },
   { id: 'sample', name: '新歓プロジェクト', detail: 'イベント運営 · 8人' },
 ];
-function App() {
+// ログイン状態はサンプル。Supabase 接続時はここをセッションの監視に置き換える
+function Root() {
+  const [loggedIn, setLoggedIn] = useState(false);
+  return loggedIn ? <App onLogout={() => setLoggedIn(false)}/> : <LoginPage onLogin={() => setLoggedIn(true)}/>;
+}
+function App({ onLogout }: { onLogout: () => void }) {
   const [month, setMonth] = useState(new Date(2026, 0, 1));
   const [selectedDay, setSelectedDay] = useState<number | null>(9);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -141,7 +147,7 @@ function App() {
           <h2>{monthName}の予定</h2><p className="schedule-subtitle">{filtered.length}件の予定 · 日時順</p>
           <div className="schedule-list">{filtered.length ? filtered.map(event => <button className="schedule-row" key={event.id} onClick={() => setEventDetail(event)}><span className={`event-dot tone-${event.tone}`}/><span><span className="event-time">{monthIndex + 1}月{event.day}日 · {event.time}</span><span className="event-title">{event.title}</span></span></button>) : <p className="empty-message">{query ? '検索に一致する予定はありません。' : 'この月の予定はありません。'}</p>}</div>
           <section className="calendar-filters"><h3>カレンダーの表示設定</h3>{categories.map(category => <label key={category.key}><span className={`category-square tone-${category.tone}`}/><span>{category.label}</span><input type="checkbox" checked={enabled.includes(category.key)} onChange={() => setEnabled(old => old.includes(category.key) ? old.filter(k => k !== category.key) : [...old, category.key])}/></label>)}</section>
-          <section className="account-card"><div className="account-identity"><span className="avatar">AK</span><div><h3>Akira Kimura</h3><p>akira.k@example.com</p></div></div><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={() => placeholder('プロフィール設定')}>プロフィール設定</button></div><button className="sign-out" onClick={() => setNotice('サンプル画面のため、ログイン・ログアウトはまだ利用できません。')}>ログアウト</button></section>
+          <section className="account-card"><div className="account-identity"><span className="avatar">AK</span><div><h3>Akira Kimura</h3><p>akira.k@example.com</p></div></div><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={() => placeholder('プロフィール設定')}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
         </aside>
       </div>
       </>}
@@ -149,4 +155,4 @@ function App() {
     {notice && <div className="toast" role="status">{notice}<button aria-label="通知を閉じる" onClick={() => setNotice(null)}><X size={16}/></button></div>}
   </>;
 }
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
+createRoot(document.getElementById('root')!).render(<React.StrictMode><Root/></React.StrictMode>);
