@@ -2,6 +2,15 @@
 
 サークルの引き継ぎアプリです。
 
+## 開発メンバー
+
+- [@higakota](https://github.com/higakota)
+- [@anemos-dev](https://github.com/anemos-dev)
+- [@Epsilon9205](https://github.com/Epsilon9205)
+- [@hoseinishiguchiraia-boop](https://github.com/hoseinishiguchiraia-boop)
+- [@yuta-0204](https://github.com/yuta-0204)
+- [@harukukobayashi](https://github.com/harukukobayashi)
+
 ## 開発
 
 Node.js 22.12 以上（または 20.19 以上の Node.js 20）と npm を使用します。
