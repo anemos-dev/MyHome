@@ -6,6 +6,7 @@ import './profile-image.css';
 import { HandoverPage, initialRoles } from './HandoverPage';
 import { initialDocuments } from './handoverDocuments';
 import { LoginPage } from './LoginPage';
+import { DataManagementPage } from './DataManagementPage';
 import { supabase } from './supabase';
 
 type Category = 'work' | 'personal' | 'shared';
@@ -93,6 +94,7 @@ function App({ onLogout }: { onLogout: () => void }) {
   const [handoverOpen, setHandoverOpen] = useState(false);
   const [circleSelectionOpen, setCircleSelectionOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
+  const [dataOpen, setDataOpen] = useState(false);
   const [monthlyBudget, setMonthlyBudget] = useState(100000);
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [budgetDraft, setBudgetDraft] = useState({ name: '', amount: '', category: '活動費', date: '2026-01-01', type: 'expense' as 'income' | 'expense' });
@@ -153,17 +155,20 @@ function App({ onLogout }: { onLogout: () => void }) {
     setSelectedDay(9);
     setCircleSelectionOpen(false);
     setBudgetOpen(false);
+    setDataOpen(false);
     setHandoverOpen(false);
     setEventDetail(null);
     setMenuOpen(false);
   }
   function openCircleSelection() {
     setCircleSelectionOpen(true);
+    setDataOpen(false);
     setHandoverOpen(false);
     setEventDetail(null);
     setMenuOpen(false);
   }
-  function openBudget() { setBudgetOpen(true); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
+  function openBudget() { setBudgetOpen(true); setDataOpen(false); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
+  function openDataManagement() { setDataOpen(true); setBudgetOpen(false); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
   function selectCircle(circle: typeof circles[number]) {
     setSelectedCircle(circle);
     goHome();
@@ -199,13 +204,13 @@ function App({ onLogout }: { onLogout: () => void }) {
           <button ref={menuButton} className={`menu-trigger icon-button ${menuOpen ? 'active' : ''}`} aria-label="メニュー" aria-expanded={menuOpen} aria-controls="home-menu" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={26}/></button>
           {menuOpen && <nav id="home-menu" className="menu-panel" aria-label="ホームメニュー">
             <div className="menu-heading"><span>メニュー</span><span>Akira Kimura</span></div>
-            {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!circleSelectionOpen && !budgetOpen && (handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setHandoverOpen(true); } else if (label === '予算管理') openBudget(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
+            {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!circleSelectionOpen && !budgetOpen && (dataOpen ? label === 'データ管理' : handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setDataOpen(false); setHandoverOpen(true); } else if (label === '予算管理') openBudget(); else if (label === 'データ管理') openDataManagement(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
           </nav>}
         </div>
       </div>
     </header>
-    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen ? 'activity-main' : undefined}>
-      {budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
+    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || dataOpen ? 'activity-main' : undefined}>
+      {dataOpen ? <DataManagementPage circleName={selectedCircle.name} onHome={goHome} onNotice={setNotice}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><span>予算管理</span></nav>
         <div className="budget-heading"><div><h1 id="budget-title">予算管理</h1><p className="activity-subtitle">サークルの予算と支出を管理します <span className="activity-sample-note">（表示確認用の一時保存）</span></p></div></div>
         <div className="budget-summary"><label>月の予算<input type="number" min="0" value={monthlyBudget} onChange={e => setMonthlyBudget(Number(e.target.value))} />円</label><div><span>月の残り予算</span><strong className="budget-remaining">{(monthlyBudget - budgetItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)).toLocaleString()}円</strong></div><div><span>サークルの残高</span><strong className="budget-balance">{(budgetItems.reduce((sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount), 0)).toLocaleString()}円</strong></div></div>
