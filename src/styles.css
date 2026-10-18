@@ -287,4 +287,19 @@
 .document-edit-form textarea { resize: vertical; }
 .document-detail-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0 16px; }
 .document-edit-form [role="alert"] { color: #b42318; }
+
+.circle-logo-preview { width: 88px; height: 88px; margin-bottom: 16px; border: 1px solid var(--activity-border); border-radius: 18px; display: grid; place-items: center; background: var(--activity-bg); color: var(--activity-purple); font-size: 32px; overflow: hidden; }
+.circle-logo-preview img { width: 100%; height: 100%; object-fit: contain; }
+.circle-settings-page input[type="file"] { font-size: 12px; padding: 10px; }
+.circle-settings-page button:disabled { cursor: wait; opacity: .6; }
+.circle-members-list { margin: 20px 0 0; padding: 0; list-style: none; }
+.circle-members-list li { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--activity-border); }
+.circle-members-list li:last-child { border: 0; }
+.circle-member-avatar { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: #eeebff; color: #5c4fdb; }
+.circle-member-role { margin-left: auto; border-radius: 20px; background: #f6f7fa; padding: 6px 12px; font-size: 12px; }
+.circle-home-identity { display: flex; align-items: center; gap: 14px; overflow-wrap: anywhere; }
+.circle-home-logo { width: 44px; height: 44px; border-radius: 10px; object-fit: contain; flex-shrink: 0; background: #fff; }
+.circle-choice-logo { width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
+.circle-option strong { overflow-wrap: anywhere; }
+
 .tone-gray{--tone:#8a94a6;--tint:#eef1f6}
