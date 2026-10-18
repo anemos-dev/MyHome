@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Search, CircleHelp, MoreHorizontal, ChevronLeft, ChevronRight, House, UserRound, Settings, CircleDot, Database, ArrowLeft, X } from 'lucide-react';
 import './styles.css';
+import './profile-image.css';
 import { HandoverPage, initialRoles } from './HandoverPage';
 import { initialDocuments } from './handoverDocuments';
 import { LoginPage } from './LoginPage';
@@ -20,6 +21,16 @@ const events: CalendarEvent[] = [
 ];
 const categories: { key: Category; label: string; tone: string }[] = [
   { key: 'work', label: '仕事', tone: 'purple' }, { key: 'personal', label: '個人', tone: 'teal' }, { key: 'shared', label: 'チーム共有', tone: 'orange' },
+];
+const profileAvatars = [
+  { label: 'ねこ', illustration: '🐱', color: '#fff0d9' },
+  { label: 'いぬ', illustration: '🐶', color: '#e8f4ff' },
+  { label: 'うさぎ', illustration: '🐰', color: '#ffeaf2' },
+  { label: 'くま', illustration: '🐻', color: '#f5e9dc' },
+  { label: 'お花', illustration: '🌷', color: '#ffeaf2' },
+  { label: '星', illustration: '⭐', color: '#fff5cf' },
+  { label: 'テニス', illustration: '🎾', color: '#e9f8df' },
+  { label: '虹', illustration: '🌈', color: '#e9edff' },
 ];
 const menuItems = [
   { label: 'ホーム', icon: House }, { label: '引き継ぎ', icon: UserRound },
@@ -49,6 +60,11 @@ function App({ onLogout }: { onLogout: () => void }) {
   const [query, setQuery] = useState('');
   const [enabled, setEnabled] = useState<Category[]>(['work', 'personal', 'shared']);
   const [notice, setNotice] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [selectedProfileAvatar, setSelectedProfileAvatar] = useState<(typeof profileAvatars)[number] | null>(null);
+  const [avatarChooserOpen, setAvatarChooserOpen] = useState(false);
+  const profileImageInput = useRef<HTMLInputElement>(null);
+  const avatarChooserHeading = useRef<HTMLHeadingElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const [eventDetail, setEventDetail] = useState<CalendarEvent | null>(null);
@@ -63,11 +79,13 @@ function App({ onLogout }: { onLogout: () => void }) {
   useEffect(() => { if (eventDetail) activityHeading.current?.focus(); }, [eventDetail]);
   useEffect(() => {
     function dismiss(e: PointerEvent) { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); }
-    function keyboard(e: KeyboardEvent) { if (e.key === 'Escape') { setMenuOpen(false); setEventDetail(null); setHandoverOpen(false); menuButton.current?.focus(); } }
+    function keyboard(e: KeyboardEvent) { if (e.key === 'Escape') { if (avatarChooserOpen) { setAvatarChooserOpen(false); } else { setMenuOpen(false); setEventDetail(null); setHandoverOpen(false); menuButton.current?.focus(); } } }
     document.addEventListener('pointerdown', dismiss); document.addEventListener('keydown', keyboard);
     return () => { document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', keyboard); };
-  }, []);
+  }, [avatarChooserOpen]);
   useEffect(() => { if (!notice) return; const timer = window.setTimeout(() => setNotice(null), 4000); return () => clearTimeout(timer); }, [notice]);
+  useEffect(() => { if (avatarChooserOpen) avatarChooserHeading.current?.focus(); }, [avatarChooserOpen]);
+  useEffect(() => () => { if (profileImage) URL.revokeObjectURL(profileImage); }, [profileImage]);
   const year = month.getFullYear(), monthIndex = month.getMonth();
   const monthName = month.toLocaleString('ja-JP', { month: 'long' });
 
@@ -77,6 +95,17 @@ function App({ onLogout }: { onLogout: () => void }) {
   const cells = Array.from({ length: 42 }, (_, i) => i >= firstDay && i < firstDay + dayCount ? i - firstDay + 1 : null);
   function changeMonth(delta: number) { setMonth(new Date(year, monthIndex + delta, 1)); setSelectedDay(null); }
   function placeholder(label: string) { setMenuOpen(false); setNotice(`${label}は今後実装予定です。`); }
+  function handleProfileImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.currentTarget.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setProfileImage(URL.createObjectURL(file));
+      setSelectedProfileAvatar(null);
+      setAvatarChooserOpen(false);
+    } else if (file) {
+      setNotice('画像ファイルを選択してください。');
+    }
+    e.currentTarget.value = '';
+  }
   function goHome() {
     setMonth(new Date(2026, 0, 1));
     setSelectedDay(9);
@@ -181,11 +210,27 @@ function App({ onLogout }: { onLogout: () => void }) {
           <h2>{monthName}の予定</h2><p className="schedule-subtitle">{filtered.length}件の予定 · 日時順</p>
           <div className="schedule-list">{filtered.length ? filtered.map(event => <button className="schedule-row" key={event.id} onClick={() => setEventDetail(event)}><span className={`event-dot tone-${event.tone}`}/><span><span className="event-time">{monthIndex + 1}月{event.day}日 · {event.time}</span><span className="event-title">{event.title}</span></span></button>) : <p className="empty-message">{query ? '検索に一致する予定はありません。' : 'この月の予定はありません。'}</p>}</div>
           <section className="calendar-filters"><h3>カレンダーの表示設定</h3>{categories.map(category => <label key={category.key}><span className={`category-square tone-${category.tone}`}/><span>{category.label}</span><input type="checkbox" checked={enabled.includes(category.key)} onChange={() => setEnabled(old => old.includes(category.key) ? old.filter(k => k !== category.key) : [...old, category.key])}/></label>)}</section>
-          <section className="account-card"><div className="account-identity"><span className="avatar">AK</span><div><h3>Akira Kimura</h3><p>akira.k@example.com</p></div></div><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={() => placeholder('プロフィール設定')}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
+          <section className="account-card"><div className="account-identity"><button className="avatar avatar-button" type="button" aria-label="プロフィールアイコンを選択" onClick={() => setAvatarChooserOpen(true)}>{profileImage ? <img className="avatar-image" src={profileImage} alt=""/> : selectedProfileAvatar ? <span aria-hidden="true">{selectedProfileAvatar.illustration}</span> : 'AK'}</button><div><h3>Akira Kimura</h3><p>akira.k@example.com</p><button className="profile-image-change" type="button" onClick={() => setAvatarChooserOpen(true)}>アイコンを変更</button></div></div><input ref={profileImageInput} className="profile-image-input" type="file" accept="image/*" aria-label="プロフィール画像ファイルを選択" onChange={handleProfileImageChange}/><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={() => placeholder('プロフィール設定')}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
         </aside>
       </div>
       </>}
     </main>
+    {avatarChooserOpen && <div className="avatar-dialog-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setAvatarChooserOpen(false); }}>
+      <section className="avatar-dialog" role="dialog" aria-modal="true" aria-labelledby="avatar-dialog-title">
+        <button className="avatar-dialog-close" type="button" aria-label="閉じる" onClick={() => setAvatarChooserOpen(false)}>×</button>
+        <h2 id="avatar-dialog-title" ref={avatarChooserHeading} tabIndex={-1}>アイコンを選択</h2>
+        <p>好きなイラストを選ぶか、自分の画像を使えます。</p>
+        <div className="avatar-options">
+          <button className="avatar-option" type="button" onClick={() => { setProfileImage(null); setSelectedProfileAvatar(null); setAvatarChooserOpen(false); }}>
+            <span className="avatar-option-art avatar-option-initials">AK</span><span>初期アイコン</span>
+          </button>
+          {profileAvatars.map(avatar => <button className="avatar-option" type="button" key={avatar.label} onClick={() => { setProfileImage(null); setSelectedProfileAvatar(avatar); setAvatarChooserOpen(false); }}>
+            <span className="avatar-option-art" style={{ backgroundColor: avatar.color }} aria-hidden="true">{avatar.illustration}</span><span>{avatar.label}</span>
+          </button>)}
+        </div>
+        <button className="avatar-upload-button" type="button" onClick={() => profileImageInput.current?.click()}>画像ファイルを選ぶ</button>
+      </section>
+    </div>}
     {notice && <div className="toast" role="status">{notice}<button aria-label="通知を閉じる" onClick={() => setNotice(null)}><X size={16}/></button></div>}
   </>;
 }
