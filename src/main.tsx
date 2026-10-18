@@ -69,11 +69,17 @@ function Root() {
   if (loading) return <main className="login-main"><p role="status">ログイン状態を確認中です…</p></main>;
   return <>
     {authError && <p role="alert">{authError}</p>}
-    {session ? <App key={session.user.id} onLogout={() => { void logout(); }}/>
+    {session ? <App key={session.user.id} user={session.user} onLogout={() => { void logout(); }}/>
       : <LoginPage onLogin={() => { void login(); }} busy={signingIn}/>}
   </>;
 }
-function App({ onLogout }: { onLogout: () => void }) {
+function App({ user, onLogout }: { user: import('@supabase/supabase-js').User; onLogout: () => void }) {
+  // Googleのプロフィール情報は表示専用。権限判定には使用しない。
+  const profileName = [user.user_metadata.full_name, user.user_metadata.name]
+    .find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+  const displayName = profileName?.trim() || user.email?.split('@')[0] || 'ユーザー';
+  const displayEmail = user.email || 'メールアドレス未設定';
+  const initials = Array.from(displayName).slice(0, 2).join('').toLocaleUpperCase();
   const [month, setMonth] = useState(new Date(2026, 0, 1));
   const [calendarEvents, setCalendarEvents] = useState(events);
   const [selectedDay, setSelectedDay] = useState<number | null>(9);
@@ -162,7 +168,7 @@ function App({ onLogout }: { onLogout: () => void }) {
         <div className="menu-anchor" ref={menuRef}>
           <button ref={menuButton} className={`menu-trigger icon-button ${menuOpen ? 'active' : ''}`} aria-label="メニュー" aria-expanded={menuOpen} aria-controls="home-menu" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={26}/></button>
           {menuOpen && <nav id="home-menu" className="menu-panel" aria-label="ホームメニュー">
-            <div className="menu-heading"><span>メニュー</span><span>Akira Kimura</span></div>
+            <div className="menu-heading"><span>メニュー</span><span>{displayName}</span></div>
             {menuItems.map(({ label, icon: Icon, admin }, i) => <button key={label} className={`menu-item ${(!circleSelectionOpen && (handoverOpen ? i === 1 : i === 0)) ? 'current' : ''}`} onClick={() => { if (i === 0) goHome(); else if (i === 1) { setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setHandoverOpen(true); } else if (i === 6) openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
           </nav>}
         </div>
@@ -218,7 +224,7 @@ function App({ onLogout }: { onLogout: () => void }) {
           <h2>{monthName}の予定</h2><p className="schedule-subtitle">{filtered.length}件の予定 · 日時順</p>
           <div className="schedule-list">{filtered.length ? filtered.map(event => <button className="schedule-row" key={event.id} onClick={() => setEventDetail(event)}><span className={`event-dot tone-${event.tone}`}/><span><span className="event-time">{monthIndex + 1}月{event.day}日 · {event.time}</span><span className="event-title">{event.title}</span></span></button>) : <p className="empty-message">{query ? '検索に一致する予定はありません。' : 'この月の予定はありません。'}</p>}</div>
           <section className="calendar-filters"><h3>カレンダーの表示設定</h3>{categories.map(category => <label key={category.key}><span className={`category-square tone-${category.tone}`}/><span>{category.label}</span><input type="checkbox" checked={enabled.includes(category.key)} onChange={() => setEnabled(old => old.includes(category.key) ? old.filter(k => k !== category.key) : [...old, category.key])}/></label>)}</section>
-          <section className="account-card"><div className="account-identity"><span className="avatar">AK</span><div><h3>Akira Kimura</h3><p>akira.k@example.com</p></div></div><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={() => placeholder('プロフィール設定')}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
+          <section className="account-card"><div className="account-identity"><span className="avatar" aria-hidden="true">{initials}</span><div><h3>{displayName}</h3><p>{displayEmail}</p></div></div><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={() => placeholder('プロフィール設定')}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
         </aside>
       </div>
       </>}
