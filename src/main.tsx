@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Search, CircleHelp, MoreHorizontal, ChevronLeft, ChevronRight, House, UserRound, Settings, CircleDot, Database, ArrowLeft, X } from 'lucide-react';
 import './styles.css';
+import { HandoverPage } from './HandoverPage';
 
 type Category = 'work' | 'personal' | 'shared';
 type CalendarEvent = { id: number; day: number; time: string; title: string; category: Category; tone: string };
@@ -27,6 +28,7 @@ function App() {
   const [month, setMonth] = useState(new Date(2026, 0, 1));
   const [selectedDay, setSelectedDay] = useState<number | null>(9);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [handoverOpen, setHandoverOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [enabled, setEnabled] = useState<Category[]>(['work', 'personal', 'shared']);
   const [notice, setNotice] = useState<string | null>(null);
@@ -37,7 +39,7 @@ function App() {
   useEffect(() => { if (eventDetail) activityHeading.current?.focus(); }, [eventDetail]);
   useEffect(() => {
     function dismiss(e: PointerEvent) { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); }
-    function keyboard(e: KeyboardEvent) { if (e.key === 'Escape') { setMenuOpen(false); setEventDetail(null); menuButton.current?.focus(); } }
+    function keyboard(e: KeyboardEvent) { if (e.key === 'Escape') { setMenuOpen(false); setEventDetail(null); setHandoverOpen(false); menuButton.current?.focus(); } }
     document.addEventListener('pointerdown', dismiss); document.addEventListener('keydown', keyboard);
     return () => { document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', keyboard); };
   }, []);
@@ -53,7 +55,7 @@ function App() {
   function placeholder(label: string) { setMenuOpen(false); setNotice(`${label}は今後実装予定です。`); }
   return <>
     <header className="header">
-      <a className="brand" href="#" onClick={e => { e.preventDefault(); setMonth(new Date(2026, 0, 1)); setSelectedDay(9); setEventDetail(null); }}><span className="brand-mark">H</span><span>ホーム</span></a>
+      <a className="brand" href="#" onClick={e => { e.preventDefault(); setMonth(new Date(2026, 0, 1)); setSelectedDay(9); setEventDetail(null); setHandoverOpen(false); setMenuOpen(false); }}><span className="brand-mark">H</span><span>ホーム</span></a>
       <div className="header-actions">
         <label className="search"><Search size={17}/><input aria-label="予定を検索" placeholder="予定を検索" value={query} onChange={e => setQuery(e.target.value)}/></label>
         <button className="help icon-button" aria-label="ヘルプ" onClick={() => setNotice('月の矢印で移動、予定をクリックして詳細を確認できます。')}><CircleHelp size={20}/></button>
@@ -61,13 +63,13 @@ function App() {
           <button ref={menuButton} className={`menu-trigger icon-button ${menuOpen ? 'active' : ''}`} aria-label="メニュー" aria-expanded={menuOpen} aria-controls="home-menu" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={26}/></button>
           {menuOpen && <nav id="home-menu" className="menu-panel" aria-label="ホームメニュー">
             <div className="menu-heading"><span>メニュー</span><span>Akira Kimura</span></div>
-            {menuItems.map(({ label, icon: Icon, admin }, i) => <button key={label} className={`menu-item ${i === 0 ? 'current' : ''}`} onClick={() => { if (i === 0) { setMenuOpen(false); setEventDetail(null); } else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
+            {menuItems.map(({ label, icon: Icon, admin }, i) => <button key={label} className={`menu-item ${(handoverOpen ? i === 1 : i === 0) ? 'current' : ''}`} onClick={() => { if (i === 0 || i === 1) { setMenuOpen(false); setEventDetail(null); setHandoverOpen(i === 1); } else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
           </nav>}
         </div>
       </div>
     </header>
-    <main className={eventDetail ? 'activity-main' : undefined}>
-      {eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
+    <main className={eventDetail || handoverOpen ? 'activity-main' : undefined}>
+      {handoverOpen ? <HandoverPage onHome={() => setHandoverOpen(false)}/> : eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={() => setEventDetail(null)}>‹ ホーム</button><span>/</span><span>活動記録</span></nav>
         <h1 id="activity-title" tabIndex={-1} ref={activityHeading}>活動記録</h1>
         <p className="activity-subtitle">選択した予定の内容 <span className="activity-sample-note">（表示確認用のサンプル・実際の活動記録ではありません）</span></p>
