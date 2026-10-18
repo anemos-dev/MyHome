@@ -7,7 +7,7 @@ import type { HandoverDocument } from './handoverDocuments';
 
 export type Role = { id: string; name: string };
 
-export function RoleDocumentsPage({ role, allDocuments, onAddDocument, onBack, onHome }: { role: Role; allDocuments: HandoverDocument[]; onAddDocument: (document: HandoverDocument) => void; onBack: () => void; onHome: () => void }) {
+export function RoleDocumentsPage({ role, allDocuments, onAddDocument, onUpdateDocument, onDeleteDocument, onBack, onHome }: { onUpdateDocument: (document: HandoverDocument) => void; onDeleteDocument: (id: string) => void; role: Role; allDocuments: HandoverDocument[]; onAddDocument: (document: HandoverDocument) => void; onBack: () => void; onHome: () => void }) {
   const profile = useContext(ProfileContext);
   const [query, setQuery] = useState('');
   const [selectedDocument, setSelectedDocument] = useState<HandoverDocument | null>(null);
@@ -44,7 +44,20 @@ export function RoleDocumentsPage({ role, allDocuments, onAddDocument, onBack, o
     setSelectedDocument(document);
   }
 
-  if (selectedDocument) return <DocumentPage document={selectedDocument} role={role} onBack={closeDocument} onRoles={onBack} onHome={onHome}/>;
+  function updateDocument(title: string, body: string) {
+    if (!selectedDocument) return;
+    const now = new Date();
+    const updated = { ...selectedDocument, title, body, updatedBy: profile.userId, updatedAt: now.toISOString(), updated: now.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric' }) };
+    onUpdateDocument(updated);
+    setSelectedDocument(updated);
+  }
+  function deleteDocument() {
+    if (!selectedDocument || !window.confirm(`「${selectedDocument.title}」を削除しますか？\nこの資料のタイトルと本文が削除されます。`)) return;
+    onDeleteDocument(selectedDocument.id);
+    setSelectedDocument(null);
+    requestAnimationFrame(() => heading.current?.focus());
+  }
+  if (selectedDocument) return <DocumentPage onSave={updateDocument} onDelete={deleteDocument} document={selectedDocument} role={role} onBack={closeDocument} onRoles={onBack} onHome={onHome}/>;
 
   return <section className="handover-page camp-page" aria-labelledby="camp-title">
     <nav className="activity-breadcrumb" aria-label="パンくず">
@@ -81,7 +94,7 @@ export function RoleDocumentsPage({ role, allDocuments, onAddDocument, onBack, o
       </ul>
       {documents.length === 0 && <p className="camp-empty">{roleDocuments.length === 0 ? '資料はまだありません。' : '検索に一致する資料はありません。'}</p>}
     </section>
-    <p className="handover-note">初期表示の合宿資料はサンプルです。各資料の本文を開けます。追加した資料は再読み込みすると消えます。編集・永続保存は今後実装予定です。</p>
+    <p className="handover-note">初期表示の合宿資料はサンプルです。各資料の本文を開けます。追加した資料は再読み込みすると消えます。編集・削除も一時反映されます。永続保存は今後実装予定です。</p>
     <button className="today-button" onClick={onBack}>‹ 役職一覧に戻る</button>
   </section>;
 }

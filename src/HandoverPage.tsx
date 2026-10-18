@@ -7,7 +7,8 @@ export const initialRoles: Role[] = [
   { id: 'treasurer', name: '会計' }, { id: 'camp', name: '合宿' },
 ];
 
-export function HandoverPage({ onHome, roles, onAddRole, documents, onAddDocument }: {
+export function HandoverPage({ onHome, roles, onAddRole, documents, onAddDocument, onUpdateDocument, onDeleteDocument }: {
+  onUpdateDocument: (document: HandoverDocument) => void; onDeleteDocument: (id: string) => void;
   documents: HandoverDocument[]; onAddDocument: (document: HandoverDocument) => void;
   onHome: () => void; roles: Role[]; onAddRole: (role: Role) => void;
 }) {
@@ -34,7 +35,7 @@ export function HandoverPage({ onHome, roles, onAddRole, documents, onAddDocumen
     cancelAdd();
   }
 
-  if (selectedRole) return <RoleDocumentsPage key={selectedRole.id} role={selectedRole} allDocuments={documents} onAddDocument={onAddDocument} onBack={() => setSelectedRole(null)} onHome={onHome}/>;
+  if (selectedRole) return <RoleDocumentsPage key={selectedRole.id} role={selectedRole} allDocuments={documents} onAddDocument={onAddDocument} onUpdateDocument={onUpdateDocument} onDeleteDocument={onDeleteDocument} onBack={() => setSelectedRole(null)} onHome={onHome}/>;
 
   return <section className="handover-page" aria-labelledby="handover-title">
     <nav className="activity-breadcrumb" aria-label="パンくず">
@@ -60,7 +61,7 @@ export function HandoverPage({ onHome, roles, onAddRole, documents, onAddDocumen
         </li>)}
       </ul>
     </section>
-    <p className="handover-note">各役職から資料一覧を開けます。追加した役職はこの画面の表示確認用で、再読み込みすると消えます。全役職で資料の一時作成と本文表示ができます。役職の削除、資料の編集・永続保存は今後実装予定です。</p>
+    <p className="handover-note">各役職から資料一覧を開けます。追加した役職はこの画面の表示確認用で、再読み込みすると消えます。全役職で資料の一時作成と本文表示ができます。資料の編集・削除も一時反映できます。役職の削除・永続保存は今後実装予定です。</p>
     <button className="today-button" onClick={onHome}>‹ ホームに戻る</button>
   </section>;
 }
