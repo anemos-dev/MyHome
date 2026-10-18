@@ -103,7 +103,7 @@ function App() {
     setActivityEditing(false);
     setNotice('活動記録を保存しました。');
   }
-  function openEventEditor() { setEventDraft({ title: '', time: '10:00', category: 'work' }); setEventFormOpen(true); }
+  function openEventEditor(day = selectedDay) { if (day) setSelectedDay(day); setEventDraft({ title: '', time: '10:00', category: 'work' }); setEventFormOpen(true); }
   function saveEvent() {
     if (!selectedDay || !eventDraft.title.trim()) { setNotice('日付と予定名を入力してください。'); return; }
     const tone = eventDraft.category === 'work' ? 'purple' : eventDraft.category === 'personal' ? 'teal' : 'orange';
@@ -160,15 +160,15 @@ function App() {
         </article>
       </section> : <>
       <div className="page-heading"><div><h1>{selectedCircle.name}</h1><p>サークルの予定を確認しましょう</p></div>
-        <div className="month-controls"><button className="today-button" onClick={() => { const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); setSelectedDay(now.getDate()); }}>今日</button><button className="add-event-button" onClick={openEventEditor}>＋ 予定を追加</button><div className="month-navigation"><button className="icon-button bordered" aria-label="前の月" onClick={() => changeMonth(-1)}><ChevronLeft size={20}/></button><h2 aria-live="polite">{year}年{monthName}</h2><button className="icon-button bordered" aria-label="次の月" onClick={() => changeMonth(1)}><ChevronRight size={20}/></button></div></div>
+        <div className="month-controls"><button className="today-button" onClick={() => { const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); setSelectedDay(now.getDate()); }}>今日</button><div className="month-navigation"><button className="icon-button bordered" aria-label="前の月" onClick={() => changeMonth(-1)}><ChevronLeft size={20}/></button><h2 aria-live="polite">{year}年{monthName}</h2><button className="icon-button bordered" aria-label="次の月" onClick={() => changeMonth(1)}><ChevronRight size={20}/></button></div></div>
       </div>
       {eventFormOpen && <form className="event-form" onSubmit={e => { e.preventDefault(); saveEvent(); }}><h2>予定を追加</h2><p>{monthIndex + 1}月{selectedDay ?? '―'}日の予定</p><label>予定名<input value={eventDraft.title} onChange={e => setEventDraft(previous => ({ ...previous, title: e.target.value }))} placeholder="予定名を入力" autoFocus required /></label><label>時刻<input type="time" value={eventDraft.time} onChange={e => setEventDraft(previous => ({ ...previous, time: e.target.value }))} required /></label><label>カテゴリ<select value={eventDraft.category} onChange={e => setEventDraft(previous => ({ ...previous, category: e.target.value as Category }))}>{categories.map(category => <option key={category.key} value={category.key}>{category.label}</option>)}</select></label><div className="event-form-actions"><button type="button" className="today-button" onClick={() => setEventFormOpen(false)}>キャンセル</button><button type="submit" className="activity-primary-button">保存する</button></div></form>}
       <div className="dashboard">
         <section className="calendar-card" aria-label={`${year}年${monthIndex + 1}月のカレンダー`}>
           <div className="weekdays">{['日', '月', '火', '水', '木', '金', '土'].map(day => <span key={day}>{day}</span>)}</div>
-          <div className="calendar-grid">{cells.map((day, i) => <div className={`day-cell ${day === null ? 'empty' : ''}`} key={i}>{day !== null && <>
-            <button className={`day-number ${selectedDay === day ? 'selected' : ''}`} aria-label={`${monthIndex + 1}月${day}日`} aria-pressed={selectedDay === day} onClick={() => setSelectedDay(day)}>{day}</button>
-            <div className="day-events">{filtered.filter(e => e.day === day).map(event => <button className={`event-chip tone-${event.tone}`} key={event.id} title={`${event.time} ${event.title}`} onClick={() => setEventDetail(event)}>{event.title === 'Lunch with Mina' ? 'Lunch · Mina' : event.title}</button>)}</div>
+          <div className="calendar-grid">{cells.map((day, i) => <div className={`day-cell ${day === null ? 'empty' : ''}`} key={i} onClick={() => day !== null && openEventEditor(day)}>{day !== null && <>
+            <button className={`day-number ${selectedDay === day ? 'selected' : ''}`} aria-label={`${monthIndex + 1}月${day}日に予定を追加`} aria-pressed={selectedDay === day} onClick={e => { e.stopPropagation(); openEventEditor(day); }}>{day}</button>
+            <div className="day-events">{filtered.filter(e => e.day === day).map(event => <button className={`event-chip tone-${event.tone}`} key={event.id} title={`${event.time} ${event.title}`} onClick={e => { e.stopPropagation(); setEventDetail(event); }}>{event.title === 'Lunch with Mina' ? 'Lunch · Mina' : event.title}</button>)}</div>
           </>}</div>)}</div>
         </section>
         <aside className="schedule-card">
