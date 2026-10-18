@@ -34,7 +34,7 @@
 .activity-card .today-button { font-size: 12px; padding: 0 16px; border-color: var(--activity-border); }
 .activity-primary-button { min-height: 38px; padding: 0 16px; border-radius: 9px; background: var(--activity-purple); color: #fff; font-size: 12px; }
 .day-cell:not(.empty) { cursor: pointer; }
-.event-form { display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; align-items: end; gap: 14px; margin: -14px 0 24px; padding: 18px; background: #fff; border: 1px solid #dfe5f0; border-radius: 14px; }
+.event-form { display: grid; grid-template-columns: 1.5fr repeat(3, 1fr) auto; align-items: end; gap: 14px; margin: -14px 0 24px; padding: 18px; background: #fff; border: 1px solid #dfe5f0; border-radius: 14px; }
 .event-form h2 { grid-column: 1 / -1; font-size: 17px; }
 .event-form > p { grid-column: 1 / -1; margin-top: -10px; font-size: 12px; }
 .event-form label { display: grid; gap: 6px; font-size: 12px; }
@@ -42,6 +42,7 @@
 .event-form-actions { display: flex; gap: 8px; }
 .event-submit-button { min-height: 38px; padding: 0 18px; border: 0; border-radius: 9px; background: #5c4fdb; color: #fff; font-size: 12px; white-space: nowrap; }
 .event-submit-button:hover { filter: brightness(.95); }
+.event-detail-edit { margin: 12px 0; }
 @media (max-width: 850px) { .event-form { grid-template-columns: 1fr 1fr; } .event-form-actions { grid-column: 1 / -1; justify-content: flex-end; } }
 @media (max-width: 520px) { .event-form { grid-template-columns: 1fr; } .event-form-actions { grid-column: auto; } }
 .activity-primary-button:hover { filter: brightness(.95); }
