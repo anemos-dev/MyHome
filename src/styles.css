@@ -70,3 +70,43 @@
   .handover-list { gap: 14px; }
   .handover-list li { min-height: 76px; padding: 16px; }
 }
+.handover-role { align-self: stretch; flex: 1; min-width: 0; text-align: left; padding: 0; font-size: inherit; }
+.handover-role:not(:disabled):hover { color: var(--activity-purple); text-decoration: underline; }
+.camp-actions { display: flex; align-items: center; gap: 12px; }
+.camp-actions .handover-add { margin: 0; min-width: 132px; }
+.camp-search { display: flex; align-items: center; gap: 12px; width: 260px; min-height: 42px; padding: 0 15px; background: #fff; border: 1px solid var(--activity-border); border-radius: 10px; color: var(--activity-muted); }
+.camp-search input { min-width: 0; width: 100%; border: 0; background: transparent; color: var(--activity-text); font-size: 12px; }
+.camp-search input::placeholder { color: var(--activity-muted); }
+.camp-card { min-height: 624px; padding-bottom: 54px; }
+.camp-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.camp-list-heading h2 { font-size: 15px; line-height: 21px; }
+.camp-list-heading p { font-size: 12px; color: var(--activity-muted); }
+.camp-list { display: flex; flex-direction: column; gap: 17px; list-style: none; margin: 16px 0 0; padding: 0; }
+.camp-list li { display: flex; align-items: center; gap: 24px; min-height: 88px; border: 1px solid var(--activity-border); border-radius: 10px; padding: 18px 25px; }
+.camp-document-info { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.camp-document-info h3 { font-size: 15px; font-weight: 500; line-height: 22px; }
+.camp-document-info p { font-size: 11px; line-height: 18px; margin-top: 6px; color: var(--activity-muted); }
+.camp-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-right: 36px; }
+.camp-tags span { display: grid; place-items: center; min-width: 76px; min-height: 28px; padding: 5px 14px; border-radius: 14px; background: var(--activity-bg); color: var(--activity-muted); font-size: 10px; }
+.camp-tags .camp-year { background: #edebff; color: var(--activity-purple); }
+.camp-tags .camp-label { color: var(--activity-text); }
+.camp-chevron { font-size: 25px; color: var(--activity-muted); }
+.camp-empty { padding: 32px 0; font-size: 14px; line-height: 1.8; }
+@media (max-width: 850px) {
+  .camp-page .handover-heading { flex-wrap: wrap; }
+  .camp-tags { margin-right: 0; }
+}
+@media (max-width: 520px) {
+  .camp-actions { flex-wrap: wrap; width: 100%; }
+  .camp-search { flex: 1; width: auto; min-width: 150px; }
+  .camp-card { min-height: 0; padding-bottom: 24px; }
+  .camp-list li { flex-wrap: wrap; padding: 18px 16px; gap: 12px; }
+  .camp-document-info { flex-basis: 100%; }
+  .camp-tags { flex: 1; }
+}
+.handover-role { overflow-wrap: anywhere; }
+.role-add-form { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 20px; margin-top: 20px; border: 1px solid var(--activity-border); border-radius: 12px; background: #fff; }
+.role-add-form label { font-size: 14px; }
+.role-add-form input { flex: 1; min-width: 120px; max-width: 100%; border: 1px solid var(--activity-border); border-radius: 8px; padding: 10px; }
+.role-add-form p { width: 100%; color: #b42318; font-size: 13px; }
+.role-add-form .handover-add { margin: 0; }
