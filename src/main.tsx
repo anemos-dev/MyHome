@@ -39,7 +39,7 @@ const profileAvatars = [
 const menuItems = [
   { label: 'ホーム', icon: House }, { label: '引き継ぎ', icon: UserRound },
   { label: 'プロフィール設定', icon: Settings }, { label: 'サークル設定', icon: CircleDot },
-  { label: '役職設定', icon: Settings, admin: true }, { label: '予算管理', icon: WalletCards }, { label: 'データ管理', icon: Database, admin: true },
+  { label: '予算管理', icon: WalletCards }, { label: 'データ管理', icon: Database, admin: true },
   { label: 'サークル選択に戻る', icon: ArrowLeft },
 ];
 type BudgetItem = { id: number; name: string; amount: number; category: string; date: string; type: 'income' | 'expense' };
