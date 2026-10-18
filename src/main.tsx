@@ -119,6 +119,8 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
   const [profileRoleIds, setProfileRoleIds] = useState<string[]>([]);
   const [circleSelectionOpen, setCircleSelectionOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
+  const [circleSettingsOpen, setCircleSettingsOpen] = useState(false);
+  const [circleSettings, setCircleSettings] = useState({ name: circles[0].name, detail: circles[0].detail, members: '12' });
   const [monthlyBudget, setMonthlyBudget] = useState(100000);
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [budgetDraft, setBudgetDraft] = useState({ name: '', amount: '', category: '活動費', date: '2026-01-01', type: 'expense' as 'income' | 'expense' });
@@ -183,6 +185,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
     setSelectedDay(9);
     setCircleSelectionOpen(false);
     setBudgetOpen(false);
+    setCircleSettingsOpen(false);
     setHandoverOpen(false);
     setEventDetail(null);
     setMenuOpen(false);
@@ -196,6 +199,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
   }
   function openBudget() {
     setProfileOpen(false); setBudgetOpen(true); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
+  function openCircleSettings() { setCircleSettingsOpen(true); setBudgetOpen(false); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
   function selectCircle(circle: typeof circles[number]) {
     setSelectedCircle(circle);
     goHome();
@@ -268,13 +272,18 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
           <button ref={menuButton} className={`menu-trigger icon-button ${menuOpen ? 'active' : ''}`} aria-label="メニュー" aria-expanded={menuOpen} aria-controls="home-menu" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={26}/></button>
           {menuOpen && <nav id="home-menu" className="menu-panel" aria-label="ホームメニュー">
             <div className="menu-heading"><span>メニュー</span><span className="menu-user-name">{displayName}</span></div>
-            {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!circleSelectionOpen && !budgetOpen && (profileOpen ? label === 'プロフィール設定' : handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setProfileOpen(false); setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setHandoverOpen(true); } else if (label === 'プロフィール設定') openProfile(); else if (label === '予算管理') openBudget(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
+            <div className="menu-heading"><span>メニュー</span><span className="menu-user-name">{displayName}</span></div>
+            {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!circleSelectionOpen && !budgetOpen && !circleSettingsOpen && (profileOpen ? label === 'プロフィール設定' : handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setProfileOpen(false); setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setCircleSettingsOpen(false); setHandoverOpen(true); } else if (label === 'プロフィール設定') openProfile(); else if (label === '予算管理') openBudget(); else if (label === 'サークル設定') openCircleSettings(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
           </nav>}
         </div>
       </div>
     </header>
-    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen ? 'activity-main' : undefined}>
-      {profileOpen ? <ProfileSettingsPage displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
+    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen || circleSettingsOpen ? 'activity-main' : undefined}>
+      {profileOpen ? <ProfileSettingsPage displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : circleSettingsOpen ? <section className="settings-page" aria-labelledby="settings-title">
+        <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><span>サークル設定</span></nav>
+        <h1 id="settings-title">サークル設定</h1><p className="activity-subtitle">サークルの基本情報を設定します <span className="activity-sample-note">（表示確認用の一時保存）</span></p>
+        <form className="settings-card" onSubmit={e => { e.preventDefault(); setCircleSettings(previous => ({ ...previous, name: previous.name.trim() || circles[0].name, detail: previous.detail.trim() || circles[0].detail })); setNotice('サークル設定を保存しました。'); }}><label>サークル名<input value={circleSettings.name} onChange={e => setCircleSettings(previous => ({ ...previous, name: e.target.value }))} required /></label><label>活動内容<input value={circleSettings.detail} onChange={e => setCircleSettings(previous => ({ ...previous, detail: e.target.value }))} placeholder="例：テニスサークル" /></label><label>メンバー数<input type="number" min="0" value={circleSettings.members} onChange={e => setCircleSettings(previous => ({ ...previous, members: e.target.value }))} /></label><div className="settings-actions"><button type="button" className="today-button" onClick={goHome}>キャンセル</button><button type="submit" className="activity-primary-button">保存する</button></div></form>
+      </section> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><span>予算管理</span></nav>
         <div className="budget-heading"><div><h1 id="budget-title">予算管理</h1><p className="activity-subtitle">サークルの予算と支出を管理します <span className="activity-sample-note">（表示確認用の一時保存）</span></p></div></div>
         <div className="budget-summary"><label>月の予算<input type="number" min="0" value={monthlyBudget} onChange={e => setMonthlyBudget(Number(e.target.value))} />円</label><div><span>月の残り予算</span><strong className="budget-remaining">{(monthlyBudget - budgetItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)).toLocaleString()}円</strong></div><div><span>サークルの残高</span><strong className="budget-balance">{(budgetItems.reduce((sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount), 0)).toLocaleString()}円</strong></div></div>
