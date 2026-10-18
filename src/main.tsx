@@ -98,11 +98,18 @@ function Root() {
   if (loading) return <main className="login-main"><p role="status">ログイン状態を確認中です…</p></main>;
   return <>
     {authError && <p role="alert">{authError}</p>}
-    {session ? <App key={session.user.id} onLogout={() => { void logout(); }}/>
+    {session ? <App key={session.user.id} user={session.user} onLogout={() => { void logout(); }}/>
       : <LoginPage onLogin={() => { void login(); }} busy={signingIn}/>}
   </>;
 }
-function App({ onLogout }: { onLogout: () => void }) {
+function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; onLogout: () => void }) {
+  // Googleのプロフィール情報は表示専用。権限判定には使用しない。
+  const profileName = [user?.user_metadata.full_name, user?.user_metadata.name]
+    .find((value): value is string => typeof value === 'string' && value.trim().length > 0);
+  const initialDisplayName = profileName?.trim() || user?.email?.split('@')[0] || (user ? 'ユーザー' : 'サンプルユーザー');
+  const [displayName, setDisplayName] = useState(initialDisplayName);
+  const displayEmail = user?.email || (user ? 'メールアドレス未設定' : '認証していません');
+  const initials = Array.from(displayName).slice(0, 2).join('').toLocaleUpperCase();
   const [month, setMonth] = useState(new Date(2026, 0, 1));
   const [calendarEvents, setCalendarEvents] = useState(events);
   const [remoteCircleId, setRemoteCircleId] = useState<string | null>(null);
@@ -110,11 +117,10 @@ function App({ onLogout }: { onLogout: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [handoverOpen, setHandoverOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [displayName, setDisplayName] = useState('Akira Kimura');
   const [profileRoleIds, setProfileRoleIds] = useState<string[]>([]);
   const [circleSelectionOpen, setCircleSelectionOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
-  const [monthlyBudget, setMonthlyBudget] = useState(100000);
+  const [monthlyBudget, setMonthlyBudget] = useState('100000');
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [budgetDraft, setBudgetDraft] = useState({ name: '', amount: '', category: '活動費', date: '2026-01-01', type: 'expense' as 'income' | 'expense' });
   const [selectedCircle, setSelectedCircle] = useState(circles[0]);
@@ -177,7 +183,7 @@ function App({ onLogout }: { onLogout: () => void }) {
     return () => { active = false; };
   }, [selectedCircle.name]);
 
-  const filtered = (year === 2026 && monthIndex === 0 ? calendarEvents : []).filter(e => enabled.includes(e.category) && e.title.toLowerCase().includes(query.toLowerCase()));
+  const filtered = (year === 2026 && monthIndex === 0 ? calendarEvents : []).filter(e => enabled.includes(e.category) && e.title.toLowerCase().includes(query.toLowerCase())).sort((a, b) => a.day - b.day || a.time.localeCompare(b.time));
   const firstDay = new Date(year, monthIndex, 1).getDay();
   const dayCount = new Date(year, monthIndex + 1, 0).getDate();
   const cells = Array.from({ length: 42 }, (_, i) => i >= firstDay && i < firstDay + dayCount ? i - firstDay + 1 : null);
@@ -224,6 +230,37 @@ function App({ onLogout }: { onLogout: () => void }) {
     const record = activityRecords[event.id] ?? { description: '', reflection: '' };
     setActivityDraft(record);
     setActivityEditing(true);
+  }
+  function deleteEvent() {
+    if (!eventDetail) return;
+    if (!window.confirm(`「${eventDetail.title}」の予定を削除しますか？\nこの予定と、紐づく活動記録も削除されます。`)) return;
+    const eventId = eventDetail.id;
+    setCalendarEvents(previous => previous.filter(event => event.id !== eventId));
+    setActivityRecords(previous => {
+      const remaining = { ...previous };
+      delete remaining[eventId];
+      return remaining;
+    });
+    setActivityEditing(false);
+    setActivityDraft({ description: '', reflection: '' });
+    setEventFormOpen(false);
+    setEventDetail(null);
+    setNotice('予定と紐づく活動記録を削除しました。');
+    menuButton.current?.focus();
+  }
+  function deleteActivity() {
+    if (!eventDetail || !activityRecords[eventDetail.id]) return;
+    if (!window.confirm(`「${eventDetail.title}」の活動記録を削除しますか？\n活動内容・ふりかえりを削除します。カレンダーの予定は残ります。`)) return;
+    const eventId = eventDetail.id;
+    setActivityRecords(previous => {
+      const remaining = { ...previous };
+      delete remaining[eventId];
+      return remaining;
+    });
+    setActivityEditing(false);
+    setActivityDraft({ description: '', reflection: '' });
+    setNotice('活動記録を削除しました。予定は残っています。');
+    activityHeading.current?.focus();
   }
   function saveActivity() {
     if (!eventDetail || !activityDraft.description.trim()) {
@@ -294,10 +331,10 @@ function App({ onLogout }: { onLogout: () => void }) {
       </div>
     </header>
     <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen ? 'activity-main' : undefined}>
-      {profileOpen ? <ProfileSettingsPage displayName={displayName} email="akira.k@example.com" roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
+      {profileOpen ? <ProfileSettingsPage displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><span>予算管理</span></nav>
         <div className="budget-heading"><div><h1 id="budget-title">予算管理</h1><p className="activity-subtitle">サークルの予算と支出を管理します <span className="activity-sample-note">（表示確認用の一時保存）</span></p></div></div>
-        <div className="budget-summary"><label>月の予算<input type="number" min="0" value={monthlyBudget} onChange={e => setMonthlyBudget(Number(e.target.value))} />円</label><div><span>月の残り予算</span><strong className="budget-remaining">{(monthlyBudget - budgetItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)).toLocaleString()}円</strong></div><div><span>サークルの残高</span><strong className="budget-balance">{(budgetItems.reduce((sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount), 0)).toLocaleString()}円</strong></div></div>
+        <div className="budget-summary"><label>月の予算<input type="number" min="0" value={monthlyBudget} onChange={e => setMonthlyBudget(e.target.value)} />円</label><div><span>月の残り予算</span><strong className="budget-remaining">{(Number(monthlyBudget) - budgetItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)).toLocaleString()}円</strong></div><div><span>サークルの残高</span><strong className="budget-balance">{(budgetItems.reduce((sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount), 0)).toLocaleString()}円</strong></div></div>
         <form className="budget-form" onSubmit={e => { e.preventDefault(); const amount = Number(budgetDraft.amount); if (!budgetDraft.name.trim() || amount <= 0) { setNotice('項目名と正しい金額を入力してください。'); return; } setBudgetItems(previous => [...previous, { id: Date.now(), name: budgetDraft.name.trim(), amount, category: budgetDraft.category, date: budgetDraft.date, type: budgetDraft.type }]); setBudgetDraft({ name: '', amount: '', category: '活動費', date: '2026-01-01', type: 'expense' }); setNotice(budgetDraft.type === 'income' ? '収入を追加しました。' : '支出を追加しました。'); }}><h2>{budgetDraft.type === 'income' ? '収入を追加' : '支出を追加'}</h2><select aria-label="入出金種別" value={budgetDraft.type} onChange={e => setBudgetDraft(previous => ({ ...previous, type: e.target.value as 'income' | 'expense' }))}><option value="expense">支出</option><option value="income">収入</option></select><input aria-label="項目名" placeholder="項目名" value={budgetDraft.name} onChange={e => setBudgetDraft(previous => ({ ...previous, name: e.target.value }))} /><input aria-label="金額" type="number" min="1" placeholder="金額" value={budgetDraft.amount} onChange={e => setBudgetDraft(previous => ({ ...previous, amount: e.target.value }))} /><select aria-label="カテゴリ" value={budgetDraft.category} onChange={e => setBudgetDraft(previous => ({ ...previous, category: e.target.value }))}><option>活動費</option><option>備品費</option><option>会場費</option><option>会費</option><option>寄付</option><option>その他</option></select><input aria-label="日付" type="date" value={budgetDraft.date} onChange={e => setBudgetDraft(previous => ({ ...previous, date: e.target.value }))} /><button className="activity-primary-button">追加する</button></form>
         <section className="budget-card"><h2>入出金一覧</h2>{budgetItems.length ? <ul className="budget-list">{budgetItems.map(item => <li key={item.id}><span><strong>{item.name}</strong><small>{item.date} · {item.category} · {item.type === 'income' ? '収入' : '支出'}</small></span><b className={item.type === 'income' ? 'budget-income' : ''}>{item.type === 'income' ? '+' : '-'}{item.amount.toLocaleString()}円</b></li>)}</ul> : <p className="budget-empty">入出金はまだありません。</p>}</section>
       </section> : circleSelectionOpen ? <section className="circle-selection-page" aria-labelledby="circle-selection-title">
@@ -308,7 +345,7 @@ function App({ onLogout }: { onLogout: () => void }) {
           <p className="circle-sample-note">表示確認用のサンプルです。選択内容は再読み込みするとリセットされます。</p>
           <div className="circle-list" role="list">{circles.map(circle => <button className={`circle-option ${selectedCircle.id === circle.id ? 'selected' : ''}`} key={circle.id} onClick={() => selectCircle(circle)}><span className="circle-option-mark" aria-hidden="true">{circle.name.charAt(0)}</span><span><strong>{circle.name}</strong><small>{circle.detail}</small></span><span className="circle-option-check" aria-hidden="true">{selectedCircle.id === circle.id ? '選択中' : '選択'}</span></button>)}</div>
         </div>
-      </section> : handoverOpen ? <HandoverPage documents={documents} onAddDocument={document => setDocuments(previous => [...previous, document])} roles={roles} onAddRole={role => setRoles(previous => [...previous, role])} onHome={goHome}/> : eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
+      </section> : handoverOpen ? <HandoverPage onUpdateDocument={updated => setDocuments(previous => previous.map(document => document.id === updated.id ? updated : document))} onDeleteDocument={id => setDocuments(previous => previous.filter(document => document.id !== id))} documents={documents} onAddDocument={document => setDocuments(previous => [...previous, document])} roles={roles} onAddRole={role => setRoles(previous => [...previous, role])} onHome={goHome}/> : eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={() => setEventDetail(null)}>‹ ホーム</button><span>/</span><span>活動記録</span></nav>
         <h1 id="activity-title" tabIndex={-1} ref={activityHeading}>活動記録</h1>
         <p className="activity-subtitle">選択した予定の内容 <span className="activity-sample-note">（再読み込みするとリセットされるサンプル記録です）</span></p>
@@ -319,8 +356,7 @@ function App({ onLogout }: { onLogout: () => void }) {
               <p className="activity-weekday">{new Date(year, monthIndex, eventDetail.day).toLocaleDateString('ja-JP', { weekday: 'long' })} · {eventDetail.time}</p>
             </div>
           </div>
-          <h2>{eventDetail.title}</h2>
-          <button className="today-button event-detail-edit" onClick={() => openExistingEventEditor(eventDetail)}>予定を編集</button>
+          <div className="event-detail-heading"><h2>{eventDetail.title}</h2><div className="activity-record-actions"><button className="today-button event-detail-edit" onClick={() => openExistingEventEditor(eventDetail)}>予定を編集</button><button className="activity-delete-button" onClick={deleteEvent}>予定を削除</button></div></div>
           <hr />
           {activityEditing ? <form className="activity-form" onSubmit={e => { e.preventDefault(); saveActivity(); }}>
             <label>活動内容<textarea value={activityDraft.description} onChange={e => setActivityDraft(previous => ({ ...previous, description: e.target.value }))} placeholder="活動内容を入力してください" required /></label>
@@ -329,7 +365,7 @@ function App({ onLogout }: { onLogout: () => void }) {
           </form> : activityRecords[eventDetail.id] ? <>
             <RecordAttributionView record={activityRecords[eventDetail.id]}/><h3>活動内容</h3><div className="activity-description"><p>{activityRecords[eventDetail.id].description}</p></div>
             <section className="activity-reflection" aria-labelledby="reflection-title"><h3 id="reflection-title">ふりかえり</h3><p>{activityRecords[eventDetail.id].reflection || 'ふりかえりはまだありません。'}</p></section>
-            <button className="activity-primary-button" onClick={() => openActivityEditor(eventDetail)}>編集する</button>
+            <div className="activity-record-actions"><button className="activity-primary-button" onClick={() => openActivityEditor(eventDetail)}>編集する</button><button className="activity-delete-button" onClick={deleteActivity}>活動記録を削除</button></div>
           </> : <div className="activity-empty"><p>この予定の活動記録はまだありません。</p><button className="activity-primary-button" onClick={() => openActivityEditor(eventDetail)}>活動記録を作成</button></div>}
           <button className="today-button" onClick={() => setEventDetail(null)}>‹ ホームに戻る</button>
         </article>
@@ -350,7 +386,7 @@ function App({ onLogout }: { onLogout: () => void }) {
           <h2>{monthName}の予定</h2><p className="schedule-subtitle">{filtered.length}件の予定 · 日時順</p>
           <div className="schedule-list">{filtered.length ? filtered.map(event => <button className="schedule-row" key={event.id} onClick={() => setEventDetail(event)}><span className={`event-dot tone-${event.tone}`}/><span><span className="event-time">{monthIndex + 1}月{event.day}日 · {event.time}</span><span className="event-title">{event.title}</span></span></button>) : <p className="empty-message">{query ? '検索に一致する予定はありません。' : 'この月の予定はありません。'}</p>}</div>
           <section className="calendar-filters"><h3>カレンダーの表示設定</h3>{categories.map(category => <label key={category.key}><span className={`category-square tone-${category.tone}`}/><span>{category.label}</span><input type="checkbox" checked={enabled.includes(category.key)} onChange={() => setEnabled(old => old.includes(category.key) ? old.filter(k => k !== category.key) : [...old, category.key])}/></label>)}</section>
-          <section className="account-card"><div className="account-identity"><button className="avatar avatar-button" type="button" aria-label="プロフィールアイコンを選択" onClick={() => setAvatarChooserOpen(true)}>{profileImage ? <img className="avatar-image" src={profileImage} alt=""/> : selectedProfileAvatar ? <span aria-hidden="true">{selectedProfileAvatar.illustration}</span> : 'AK'}</button><div><h3>{displayName}</h3><p>akira.k@example.com</p><p className="account-role-summary">{roles.filter(role => profileRoleIds.includes(role.id)).map(role => role.name).join('・') || '役職未設定'}</p><button className="profile-image-change" type="button" onClick={() => setAvatarChooserOpen(true)}>アイコンを変更</button></div></div><input ref={profileImageInput} className="profile-image-input" type="file" accept="image/*" aria-label="プロフィール画像ファイルを選択" onChange={handleProfileImageChange}/><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={openProfile}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
+          <section className="account-card"><div className="account-identity"><button className="avatar avatar-button" type="button" aria-label="プロフィールアイコンを選択" onClick={() => setAvatarChooserOpen(true)}>{profileImage ? <img className="avatar-image" src={profileImage} alt=""/> : selectedProfileAvatar ? <span aria-hidden="true">{selectedProfileAvatar.illustration}</span> : initials}</button><div><h3>{displayName}</h3><p>{displayEmail}</p><p className="account-role-summary">{roles.filter(role => profileRoleIds.includes(role.id)).map(role => role.name).join('・') || '役職未設定'}</p><button className="profile-image-change" type="button" onClick={() => setAvatarChooserOpen(true)}>アイコンを変更</button></div></div><input ref={profileImageInput} className="profile-image-input" type="file" accept="image/*" aria-label="プロフィール画像ファイルを選択" onChange={handleProfileImageChange}/><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={openProfile}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
         </aside>
       </div>
       </>}
