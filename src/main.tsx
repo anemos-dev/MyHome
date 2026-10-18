@@ -199,6 +199,37 @@ function App({ onLogout }: { onLogout: () => void }) {
     setActivityDraft(record);
     setActivityEditing(true);
   }
+  function deleteEvent() {
+    if (!eventDetail) return;
+    if (!window.confirm(`「${eventDetail.title}」の予定を削除しますか？\nこの予定と、紐づく活動記録も削除されます。`)) return;
+    const eventId = eventDetail.id;
+    setCalendarEvents(previous => previous.filter(event => event.id !== eventId));
+    setActivityRecords(previous => {
+      const remaining = { ...previous };
+      delete remaining[eventId];
+      return remaining;
+    });
+    setActivityEditing(false);
+    setActivityDraft({ description: '', reflection: '' });
+    setEventFormOpen(false);
+    setEventDetail(null);
+    setNotice('予定と紐づく活動記録を削除しました。');
+    menuButton.current?.focus();
+  }
+  function deleteActivity() {
+    if (!eventDetail || !activityRecords[eventDetail.id]) return;
+    if (!window.confirm(`「${eventDetail.title}」の活動記録を削除しますか？\n活動内容・ふりかえりを削除します。カレンダーの予定は残ります。`)) return;
+    const eventId = eventDetail.id;
+    setActivityRecords(previous => {
+      const remaining = { ...previous };
+      delete remaining[eventId];
+      return remaining;
+    });
+    setActivityEditing(false);
+    setActivityDraft({ description: '', reflection: '' });
+    setNotice('活動記録を削除しました。予定は残っています。');
+    activityHeading.current?.focus();
+  }
   function saveActivity() {
     if (!eventDetail || !activityDraft.description.trim()) {
       setNotice('活動内容を入力してください。');
@@ -262,7 +293,7 @@ function App({ onLogout }: { onLogout: () => void }) {
               <p className="activity-weekday">{new Date(year, monthIndex, eventDetail.day).toLocaleDateString('ja-JP', { weekday: 'long' })} · {eventDetail.time}</p>
             </div>
           </div>
-          <h2>{eventDetail.title}</h2>
+          <div className="event-detail-heading"><h2>{eventDetail.title}</h2><button className="activity-delete-button" onClick={deleteEvent}>予定を削除</button></div>
           <hr />
           {activityEditing ? <form className="activity-form" onSubmit={e => { e.preventDefault(); saveActivity(); }}>
             <label>活動内容<textarea value={activityDraft.description} onChange={e => setActivityDraft(previous => ({ ...previous, description: e.target.value }))} placeholder="活動内容を入力してください" required /></label>
@@ -271,7 +302,7 @@ function App({ onLogout }: { onLogout: () => void }) {
           </form> : activityRecords[eventDetail.id] ? <>
             <RecordAttributionView record={activityRecords[eventDetail.id]}/><h3>活動内容</h3><div className="activity-description"><p>{activityRecords[eventDetail.id].description}</p></div>
             <section className="activity-reflection" aria-labelledby="reflection-title"><h3 id="reflection-title">ふりかえり</h3><p>{activityRecords[eventDetail.id].reflection || 'ふりかえりはまだありません。'}</p></section>
-            <button className="activity-primary-button" onClick={() => openActivityEditor(eventDetail)}>編集する</button>
+            <div className="activity-record-actions"><button className="activity-primary-button" onClick={() => openActivityEditor(eventDetail)}>編集する</button><button className="activity-delete-button" onClick={deleteActivity}>活動記録を削除</button></div>
           </> : <div className="activity-empty"><p>この予定の活動記録はまだありません。</p><button className="activity-primary-button" onClick={() => openActivityEditor(eventDetail)}>活動記録を作成</button></div>}
           <button className="today-button" onClick={() => setEventDetail(null)}>‹ ホームに戻る</button>
         </article>
