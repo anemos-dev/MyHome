@@ -5,6 +5,7 @@ import './styles.css';
 import { HandoverPage, initialRoles } from './HandoverPage';
 import { initialDocuments } from './handoverDocuments';
 import { LoginPage } from './LoginPage';
+import { supabase } from './supabase';
 
 type Category = 'work' | 'personal' | 'shared';
 type CalendarEvent = { id: number; day: number; time: string; title: string; category: Category; tone: string };
@@ -31,10 +32,46 @@ const circles = [
   { id: 'tennis', name: '高体連庭球部', detail: 'テニスサークル · 12人' },
   { id: 'sample', name: '新歓プロジェクト', detail: 'イベント運営 · 8人' },
 ];
-// ログイン状態はサンプル。Supabase 接続時はここをセッションの監視に置き換える
 function Root() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  return loggedIn ? <App onLogout={() => setLoggedIn(false)}/> : <LoginPage onLogin={() => setLoggedIn(true)}/>;
+  const [session, setSession] = useState<import('@supabase/supabase-js').Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      setSession(currentSession);
+      setLoading(false);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+  async function login() {
+    setAuthError(null);
+    setSigningIn(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google', options: { redirectTo: window.location.origin },
+      });
+      if (error) throw error;
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'ログインに失敗しました。');
+      setSigningIn(false);
+    }
+  }
+  async function logout() {
+    setAuthError(null);
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) throw error;
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'ログアウトに失敗しました。');
+    }
+  }
+  if (loading) return <main className="login-main"><p role="status">ログイン状態を確認中です…</p></main>;
+  return <>
+    {authError && <p role="alert">{authError}</p>}
+    {session ? <App key={session.user.id} onLogout={() => { void logout(); }}/>
+      : <LoginPage onLogin={() => { void login(); }} busy={signingIn}/>}
+  </>;
 }
 function App({ onLogout }: { onLogout: () => void }) {
   const [month, setMonth] = useState(new Date(2026, 0, 1));
