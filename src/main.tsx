@@ -10,6 +10,7 @@ import { ProfileSettingsPage } from './ProfileSettingsPage';
 import { ProfileContext, currentUserId, RecordAttributionView, type RecordAttribution } from './RecordAttribution';
 import { supabase, supabaseConfigurationError } from './supabase';
 import { LegalPage } from './LegalPage';
+import { MemberPermissionsPage } from './MemberPermissionsPage';
 
 type Category = 'work' | 'personal' | 'shared';
 type CalendarEvent = { id: number; dbId?: string; circleId?: string; year: number; month: number; day: number; time: string; endTime?: string; title: string; category: Category; tone: string };
@@ -40,6 +41,7 @@ const profileAvatars = [
   { label: '虹', illustration: '🌈', color: '#e9edff' },
 ];
 const menuItems = [
+  { label: 'メンバー権限', icon: UserRound },
   { label: 'ホーム', icon: House }, { label: '引き継ぎ', icon: UserRound },
   { label: 'プロフィール設定', icon: Settings }, { label: 'サークル設定', icon: CircleDot },
   { label: '予算管理', icon: WalletCards }, { label: 'データ管理', icon: Database, admin: true },
@@ -123,6 +125,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
   const [menuOpen, setMenuOpen] = useState(false);
   const [handoverOpen, setHandoverOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
   const [pageResetKey, setPageResetKey] = useState(0);
   const [profileRoleIds, setProfileRoleIds] = useState<string[]>([]);
   const [circleSelectionOpen, setCircleSelectionOpen] = useState(false);
@@ -208,6 +211,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
     e.currentTarget.value = '';
   }
   function openProfile() {
+    setPermissionsOpen(false);
     setProfileOpen(true); setBudgetOpen(false); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false);
   }
   function focusPageHeading(id: string) {
@@ -223,6 +227,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
     focusPageHeading('activity-title');
   }
   function goHome() {
+    setPermissionsOpen(false);
     setProfileOpen(false);
     setMonth(new Date(2026, 0, 1));
     setSelectedDay(9);
@@ -233,6 +238,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
     setMenuOpen(false);
   }
   function openCircleSelection() {
+    setPermissionsOpen(false);
     setProfileOpen(false);
     setCircleSelectionOpen(true);
     setHandoverOpen(false);
@@ -240,6 +246,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
     setMenuOpen(false);
   }
   function openBudget() {
+    setPermissionsOpen(false);
     setProfileOpen(false); setBudgetOpen(true); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
   function selectCircle(circle: typeof circles[number]) {
     setSelectedCircle(circle);
@@ -346,13 +353,13 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
           <button ref={menuButton} className={`menu-trigger icon-button ${menuOpen ? 'active' : ''}`} aria-label="メニュー" aria-expanded={menuOpen} aria-controls="home-menu" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={26}/></button>
           {menuOpen && <nav id="home-menu" className="menu-panel" aria-label="ホームメニュー">
             <div className="menu-heading"><span>メニュー</span><span className="menu-user-name">{displayName}</span></div>
-            {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!circleSelectionOpen && !budgetOpen && (profileOpen ? label === 'プロフィール設定' : handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setProfileOpen(false); setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setHandoverOpen(true); } else if (label === 'プロフィール設定') openProfile(); else if (label === '予算管理') openBudget(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
+            {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!permissionsOpen && !circleSelectionOpen && !budgetOpen && (profileOpen ? label === 'プロフィール設定' : handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'メンバー権限') { setPermissionsOpen(true); setMenuOpen(false); } else if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setPermissionsOpen(false); setProfileOpen(false); setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setHandoverOpen(true); } else if (label === 'プロフィール設定') openProfile(); else if (label === '予算管理') openBudget(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
           </nav>}
         </div>
       </div>
     </header>
-    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen ? 'activity-main' : undefined}>
-      {profileOpen ? <ProfileSettingsPage key={pageResetKey} onReset={() => setPageResetKey(key => key + 1)} displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
+    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen || permissionsOpen ? 'activity-main' : undefined}>
+      {permissionsOpen ? <MemberPermissionsPage userId={user?.id} onHome={goHome}/> : profileOpen ? <ProfileSettingsPage key={pageResetKey} onReset={() => setPageResetKey(key => key + 1)} displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><button aria-current="page" onClick={resetBudgetPage}>予算管理</button></nav>
         <div className="budget-heading"><div><h1 id="budget-title" tabIndex={-1}>予算管理</h1><p className="activity-subtitle">サークルの予算と支出を管理します <span className="activity-sample-note">（表示確認用の一時保存）</span></p></div></div>
         <div className="budget-summary"><label>月の予算<input type="number" min="0" value={monthlyBudget} onChange={e => setMonthlyBudget(e.target.value)} />円</label><div><span>月の残り予算</span><strong className="budget-remaining">{(Number(monthlyBudget) - budgetItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)).toLocaleString()}円</strong></div><div><span>サークルの残高</span><strong className="budget-balance">{(budgetItems.reduce((sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount), 0)).toLocaleString()}円</strong></div></div>
