@@ -60,6 +60,17 @@
 .settings-card label { display: grid; gap: 8px; font-size: 13px; font-weight: 600; }
 .settings-card input { min-height: 42px; padding: 0 12px; border: 1px solid var(--activity-border); border-radius: 8px; color: var(--activity-text); }
 .settings-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.member-settings-card { margin-top: 20px; padding: 24px 28px; border: 1px solid var(--activity-border); border-radius: 14px; background: #fff; }
+.member-settings-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.member-settings-heading h2 { font-size: 16px; }
+.member-settings-heading p { margin-top: 5px; color: var(--activity-muted); font-size: 12px; }
+.member-settings-heading > span { color: var(--activity-purple); font-size: 13px; font-weight: 700; }
+.member-add-form { display: flex; gap: 10px; margin-top: 20px; }
+.member-add-form input { flex: 1; min-width: 0; min-height: 38px; padding: 0 12px; border: 1px solid var(--activity-border); border-radius: 8px; }
+.member-list { display: grid; gap: 10px; margin: 18px 0 0; padding: 0; list-style: none; }
+.member-list li { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; border-radius: 9px; background: var(--activity-bg); }
+.member-list li strong { flex: 1; font-size: 13px; }
+.member-list li button { color: #c34d5d; font-size: 12px; }
 .budget-heading h1 { font-size: 28px; line-height: 39px; }
 .budget-summary { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 16px; margin-top: 28px; }
 .budget-summary > * { min-height: 100px; padding: 20px; border: 1px solid var(--activity-border); border-radius: 14px; background: #fff; }
