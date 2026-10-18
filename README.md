@@ -10,6 +10,7 @@
 - [@hoseinishiguchiraia-boop](https://github.com/hoseinishiguchiraia-boop)
 - [@yuta-0204](https://github.com/yuta-0204)
 - [@harukukobayashi](https://github.com/harukukobayashi)
+- [](https://github.com/suzukihiroto1203shukatu-ui)
 
 ## 開発
 
