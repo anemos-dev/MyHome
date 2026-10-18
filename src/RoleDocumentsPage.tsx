@@ -7,10 +7,11 @@ import type { HandoverDocument } from './handoverDocuments';
 
 export type Role = { id: string; name: string };
 
-export function RoleDocumentsPage({ role, allDocuments, onAddDocument, onUpdateDocument, onDeleteDocument, onBack, onHome }: { onUpdateDocument: (document: HandoverDocument) => void; onDeleteDocument: (id: string) => void; role: Role; allDocuments: HandoverDocument[]; onAddDocument: (document: HandoverDocument) => void; onBack: () => void; onHome: () => void }) {
+export function RoleDocumentsPage({ role, allDocuments, onAddDocument, onUpdateDocument, onDeleteDocument, onBack, onHome, onReset }: { onUpdateDocument: (document: HandoverDocument) => void; onDeleteDocument: (id: string) => void; role: Role; allDocuments: HandoverDocument[]; onAddDocument: (document: HandoverDocument) => void; onBack: () => void; onHome: () => void; onReset: () => void }) {
   const profile = useContext(ProfileContext);
   const [query, setQuery] = useState('');
   const [selectedDocument, setSelectedDocument] = useState<HandoverDocument | null>(null);
+  const [documentResetKey, setDocumentResetKey] = useState(0);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -57,12 +58,12 @@ export function RoleDocumentsPage({ role, allDocuments, onAddDocument, onUpdateD
     setSelectedDocument(null);
     requestAnimationFrame(() => heading.current?.focus());
   }
-  if (selectedDocument) return <DocumentPage onSave={updateDocument} onDelete={deleteDocument} document={selectedDocument} role={role} onBack={closeDocument} onRoles={onBack} onHome={onHome}/>;
+  if (selectedDocument) return <DocumentPage key={documentResetKey} onReset={() => setDocumentResetKey(key => key + 1)} onSave={updateDocument} onDelete={deleteDocument} document={selectedDocument} role={role} onBack={closeDocument} onRoles={onBack} onHome={onHome}/>;
 
   return <section className="handover-page camp-page" aria-labelledby="camp-title">
     <nav className="activity-breadcrumb" aria-label="パンくず">
       <button onClick={onHome}>ホーム</button><span>/</span>
-      <button onClick={onBack}>役職一覧</button><span>/</span><span>{role.name}</span>
+      <button onClick={onBack}>役職一覧</button><span>/</span><button aria-current="page" onClick={onReset}>{role.name}</button>
     </nav>
     <div className="handover-heading">
       <div><h1 id="camp-title" tabIndex={-1} ref={heading}>{role.name}</h1><p>{role.name}に関する資料と予定（表示確認用のサンプル）</p></div>

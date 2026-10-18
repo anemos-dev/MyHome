@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { HandoverDocument } from './handoverDocuments';
 import type { Role } from './RoleDocumentsPage';
 
-export function DocumentPage({ document, role, onSave, onDelete, onBack, onRoles, onHome }: {
+export function DocumentPage({ document, role, onSave, onDelete, onBack, onRoles, onHome, onReset }: {
   onSave: (title: string, body: string) => void; onDelete: () => void;
-  document: HandoverDocument; role: Role; onBack: () => void; onRoles: () => void; onHome: () => void;
+  document: HandoverDocument; role: Role; onBack: () => void; onRoles: () => void; onHome: () => void; onReset: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(document.title);
@@ -31,7 +31,7 @@ export function DocumentPage({ document, role, onSave, onDelete, onBack, onRoles
     <nav className="activity-breadcrumb" aria-label="パンくず">
       <button onClick={onHome}>ホーム</button><span>/</span>
       <button onClick={onRoles}>役職一覧</button><span>/</span>
-      <button onClick={onBack}>{role.name}</button><span>/</span><span>{document.title}</span>
+      <button onClick={onBack}>{role.name}</button><span>/</span><button aria-current="page" onClick={onReset}>{document.title}</button>
     </nav>
     <div className="handover-heading">
       <div><h1 id="document-title" tabIndex={-1} ref={heading}>{document.title}</h1><p>{role.name}の資料（{document.sample ? '表示確認用のサンプル' : '一時保存'}）</p></div>

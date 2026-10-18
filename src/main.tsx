@@ -117,6 +117,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
   const [menuOpen, setMenuOpen] = useState(false);
   const [handoverOpen, setHandoverOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [pageResetKey, setPageResetKey] = useState(0);
   const [profileRoleIds, setProfileRoleIds] = useState<string[]>([]);
   const [circleSelectionOpen, setCircleSelectionOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
@@ -331,7 +332,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
       </div>
     </header>
     <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen ? 'activity-main' : undefined}>
-      {profileOpen ? <ProfileSettingsPage displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
+      {profileOpen ? <ProfileSettingsPage key={pageResetKey} onReset={() => setPageResetKey(key => key + 1)} displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><span>予算管理</span></nav>
         <div className="budget-heading"><div><h1 id="budget-title">予算管理</h1><p className="activity-subtitle">サークルの予算と支出を管理します <span className="activity-sample-note">（表示確認用の一時保存）</span></p></div></div>
         <div className="budget-summary"><label>月の予算<input type="number" min="0" value={monthlyBudget} onChange={e => setMonthlyBudget(e.target.value)} />円</label><div><span>月の残り予算</span><strong className="budget-remaining">{(Number(monthlyBudget) - budgetItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)).toLocaleString()}円</strong></div><div><span>サークルの残高</span><strong className="budget-balance">{(budgetItems.reduce((sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount), 0)).toLocaleString()}円</strong></div></div>
@@ -345,7 +346,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
           <p className="circle-sample-note">表示確認用のサンプルです。選択内容は再読み込みするとリセットされます。</p>
           <div className="circle-list" role="list">{circles.map(circle => <button className={`circle-option ${selectedCircle.id === circle.id ? 'selected' : ''}`} key={circle.id} onClick={() => selectCircle(circle)}><span className="circle-option-mark" aria-hidden="true">{circle.name.charAt(0)}</span><span><strong>{circle.name}</strong><small>{circle.detail}</small></span><span className="circle-option-check" aria-hidden="true">{selectedCircle.id === circle.id ? '選択中' : '選択'}</span></button>)}</div>
         </div>
-      </section> : handoverOpen ? <HandoverPage onUpdateDocument={updated => setDocuments(previous => previous.map(document => document.id === updated.id ? updated : document))} onDeleteDocument={id => setDocuments(previous => previous.filter(document => document.id !== id))} documents={documents} onAddDocument={document => setDocuments(previous => [...previous, document])} roles={roles} onAddRole={role => setRoles(previous => [...previous, role])} onHome={goHome}/> : eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
+      </section> : handoverOpen ? <HandoverPage key={pageResetKey} onReset={() => setPageResetKey(key => key + 1)} onUpdateDocument={updated => setDocuments(previous => previous.map(document => document.id === updated.id ? updated : document))} onDeleteDocument={id => setDocuments(previous => previous.filter(document => document.id !== id))} documents={documents} onAddDocument={document => setDocuments(previous => [...previous, document])} roles={roles} onAddRole={role => setRoles(previous => [...previous, role])} onHome={goHome}/> : eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={() => setEventDetail(null)}>‹ ホーム</button><span>/</span><span>活動記録</span></nav>
         <h1 id="activity-title" tabIndex={-1} ref={activityHeading}>活動記録</h1>
         <p className="activity-subtitle">選択した予定の内容 <span className="activity-sample-note">（再読み込みするとリセットされるサンプル記録です）</span></p>

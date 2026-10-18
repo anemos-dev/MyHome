@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Role } from './RoleDocumentsPage';
 
-export function ProfileSettingsPage({ displayName, email, roles, selectedRoleIds, onApply, onHome }: {
-  displayName: string; email: string; roles: Role[]; selectedRoleIds: string[]; onApply: (name: string, roleIds: string[]) => void; onHome: () => void;
+export function ProfileSettingsPage({ displayName, email, roles, selectedRoleIds, onApply, onHome, onReset }: {
+  displayName: string; email: string; roles: Role[]; selectedRoleIds: string[]; onApply: (name: string, roleIds: string[]) => void; onHome: () => void; onReset: () => void;
 }) {
   const [name, setName] = useState(displayName);
   const [roleIds, setRoleIds] = useState(selectedRoleIds);
@@ -21,7 +21,7 @@ export function ProfileSettingsPage({ displayName, email, roles, selectedRoleIds
   }
 
   return <section className="profile-page" aria-labelledby="profile-title">
-    <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={onHome}>ホーム</button><span>/</span><span>プロフィール設定</span></nav>
+    <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={onHome}>ホーム</button><span>/</span><button aria-current="page" onClick={onReset}>プロフィール設定</button></nav>
     <h1 id="profile-title" tabIndex={-1} ref={heading}>プロフィール設定</h1>
     <p className="activity-subtitle">表示名と担当する役職を変更できます</p>
     <form className="profile-card" onSubmit={apply}>
