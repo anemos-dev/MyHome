@@ -40,6 +40,8 @@
 .event-form label { display: grid; gap: 6px; font-size: 12px; }
 .event-form input, .event-form select { min-height: 38px; padding: 0 10px; border: 1px solid #dfe5f0; border-radius: 8px; color: #222d43; background: #fff; }
 .event-form-actions { display: flex; gap: 8px; }
+.event-submit-button { min-height: 38px; padding: 0 18px; border: 0; border-radius: 9px; background: #5c4fdb; color: #fff; font-size: 12px; white-space: nowrap; }
+.event-submit-button:hover { filter: brightness(.95); }
 @media (max-width: 850px) { .event-form { grid-template-columns: 1fr 1fr; } .event-form-actions { grid-column: 1 / -1; justify-content: flex-end; } }
 @media (max-width: 520px) { .event-form { grid-template-columns: 1fr; } .event-form-actions { grid-column: auto; } }
 .activity-primary-button:hover { filter: brightness(.95); }
