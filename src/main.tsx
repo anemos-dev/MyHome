@@ -120,6 +120,8 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
   const [circleSelectionOpen, setCircleSelectionOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [circleSettingsOpen, setCircleSettingsOpen] = useState(false);
+  const [roleSettingsOpen, setRoleSettingsOpen] = useState(false);
+  const [roleDraft, setRoleDraft] = useState('');
   const [circleSettings, setCircleSettings] = useState({ name: circles[0].name, detail: circles[0].detail, members: '12' });
   const [memberNames, setMemberNames] = useState(['Akira Kimura', 'Mina Sato']);
   const [memberDraft, setMemberDraft] = useState('');
@@ -188,6 +190,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
     setCircleSelectionOpen(false);
     setBudgetOpen(false);
     setCircleSettingsOpen(false);
+    setRoleSettingsOpen(false);
     setHandoverOpen(false);
     setEventDetail(null);
     setMenuOpen(false);
@@ -202,6 +205,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
   function openBudget() {
     setProfileOpen(false); setBudgetOpen(true); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
   function openCircleSettings() { setCircleSettingsOpen(true); setBudgetOpen(false); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
+  function openRoleSettings() { setRoleSettingsOpen(true); setCircleSettingsOpen(false); setBudgetOpen(false); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
   function selectCircle(circle: typeof circles[number]) {
     setSelectedCircle(circle);
     goHome();
@@ -274,14 +278,15 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
           <button ref={menuButton} className={`menu-trigger icon-button ${menuOpen ? 'active' : ''}`} aria-label="メニュー" aria-expanded={menuOpen} aria-controls="home-menu" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={26}/></button>
           {menuOpen && <nav id="home-menu" className="menu-panel" aria-label="ホームメニュー">
             <div className="menu-heading"><span>メニュー</span><span className="menu-user-name">{displayName}</span></div>
-            <div className="menu-heading"><span>メニュー</span><span className="menu-user-name">{displayName}</span></div>
             {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!circleSelectionOpen && !budgetOpen && !circleSettingsOpen && (profileOpen ? label === 'プロフィール設定' : handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setProfileOpen(false); setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setCircleSettingsOpen(false); setHandoverOpen(true); } else if (label === 'プロフィール設定') openProfile(); else if (label === '予算管理') openBudget(); else if (label === 'サークル設定') openCircleSettings(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
+            <div className="menu-heading"><span>メニュー</span><span className="menu-user-name">{displayName}</span></div>
+            {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!circleSelectionOpen && !budgetOpen && !circleSettingsOpen && !roleSettingsOpen && (profileOpen ? label === 'プロフィール設定' : handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setProfileOpen(false); setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setCircleSettingsOpen(false); setRoleSettingsOpen(false); setHandoverOpen(true); } else if (label === 'プロフィール設定') openProfile(); else if (label === '予算管理') openBudget(); else if (label === 'サークル設定') openCircleSettings(); else if (label === '役職設定') openRoleSettings(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
           </nav>}
         </div>
       </div>
     </header>
-    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen || circleSettingsOpen ? 'activity-main' : undefined}>
-      {profileOpen ? <ProfileSettingsPage displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : circleSettingsOpen ? <section className="settings-page" aria-labelledby="settings-title">
+    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen || circleSettingsOpen || roleSettingsOpen ? 'activity-main' : undefined}>
+      {profileOpen ? <ProfileSettingsPage displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : roleSettingsOpen ? <section className="settings-page" aria-labelledby="role-settings-title"><nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><span>役職設定</span></nav><h1 id="role-settings-title">役職設定</h1><p className="activity-subtitle">引き継ぎで使用する役職を管理します <span className="activity-sample-note">（表示確認用の一時保存）</span></p><form className="settings-card" onSubmit={e => { e.preventDefault(); const name = roleDraft.trim(); if (!name) { setNotice('役職名を入力してください。'); return; } if (roles.some(role => role.name === name)) { setNotice('同じ役職名がすでにあります。'); return; } setRoles(previous => [...previous, { id: crypto.randomUUID(), name }]); setRoleDraft(''); setNotice('役職を追加しました。'); }}><label>新しい役職名<input value={roleDraft} onChange={e => setRoleDraft(e.target.value)} placeholder="例：広報" /></label><div className="settings-actions"><button type="submit" className="activity-primary-button">役職を追加</button></div></form><section className="member-settings-card"><div className="member-settings-heading"><div><h2>登録済みの役職</h2><p>役職名を確認・削除できます</p></div><span>{roles.length}件</span></div><ul className="member-list">{roles.map(role => <li key={role.id}><strong>{role.name}</strong><button type="button" onClick={() => setRoles(previous => previous.filter(item => item.id !== role.id))}>削除</button></li>)}</ul></section></section> : circleSettingsOpen ? <section className="settings-page" aria-labelledby="settings-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><span>サークル設定</span></nav>
         <h1 id="settings-title">サークル設定</h1><p className="activity-subtitle">サークルの基本情報を設定します <span className="activity-sample-note">（表示確認用の一時保存）</span></p>
         <form className="settings-card" onSubmit={e => { e.preventDefault(); setCircleSettings(previous => ({ ...previous, name: previous.name.trim() || circles[0].name, detail: previous.detail.trim() || circles[0].detail })); setNotice('サークル設定を保存しました。'); }}><label>サークル名<input value={circleSettings.name} onChange={e => setCircleSettings(previous => ({ ...previous, name: e.target.value }))} required /></label><label>活動内容<input value={circleSettings.detail} onChange={e => setCircleSettings(previous => ({ ...previous, detail: e.target.value }))} placeholder="例：テニスサークル" /></label><label>メンバー数<input type="number" min="0" value={circleSettings.members} onChange={e => setCircleSettings(previous => ({ ...previous, members: e.target.value }))} /></label><div className="settings-actions"><button type="button" className="today-button" onClick={goHome}>キャンセル</button><button type="submit" className="activity-primary-button">保存する</button></div></form>
