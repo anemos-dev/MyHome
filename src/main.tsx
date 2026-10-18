@@ -33,6 +33,8 @@ function App() {
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const [eventDetail, setEventDetail] = useState<CalendarEvent | null>(null);
+  const activityHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { if (eventDetail) activityHeading.current?.focus(); }, [eventDetail]);
   useEffect(() => {
     function dismiss(e: PointerEvent) { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); }
     function keyboard(e: KeyboardEvent) { if (e.key === 'Escape') { setMenuOpen(false); setEventDetail(null); menuButton.current?.focus(); } }
@@ -51,7 +53,7 @@ function App() {
   function placeholder(label: string) { setMenuOpen(false); setNotice(`${label}は今後実装予定です。`); }
   return <>
     <header className="header">
-      <a className="brand" href="#" onClick={e => { e.preventDefault(); setMonth(new Date(2026, 0, 1)); setSelectedDay(9); }}><span className="brand-mark">H</span><span>Home</span></a>
+      <a className="brand" href="#" onClick={e => { e.preventDefault(); setMonth(new Date(2026, 0, 1)); setSelectedDay(9); setEventDetail(null); }}><span className="brand-mark">H</span><span>Home</span></a>
       <div className="header-actions">
         <label className="search"><Search size={17}/><input aria-label="予定を検索" placeholder="Search" value={query} onChange={e => setQuery(e.target.value)}/></label>
         <button className="help icon-button" aria-label="ヘルプ" onClick={() => setNotice('月の矢印で移動、予定をクリックして詳細を確認できます。')}><CircleHelp size={20}/></button>
@@ -59,12 +61,34 @@ function App() {
           <button ref={menuButton} className={`menu-trigger icon-button ${menuOpen ? 'active' : ''}`} aria-label="メニュー" aria-expanded={menuOpen} aria-controls="home-menu" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={26}/></button>
           {menuOpen && <nav id="home-menu" className="menu-panel" aria-label="ホームメニュー">
             <div className="menu-heading"><span>MENU</span><span>Akira Kimura</span></div>
-            {menuItems.map(({ label, icon: Icon, admin }, i) => <button key={label} className={`menu-item ${i === 0 ? 'current' : ''}`} onClick={() => i === 0 ? setMenuOpen(false) : placeholder(label)}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
+            {menuItems.map(({ label, icon: Icon, admin }, i) => <button key={label} className={`menu-item ${i === 0 ? 'current' : ''}`} onClick={() => { if (i === 0) { setMenuOpen(false); setEventDetail(null); } else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
           </nav>}
         </div>
       </div>
     </header>
-    <main>
+    <main className={eventDetail ? 'activity-main' : undefined}>
+      {eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
+        <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={() => setEventDetail(null)}>‹ Home</button><span>/</span><span>活動記録</span></nav>
+        <h1 id="activity-title" tabIndex={-1} ref={activityHeading}>活動記録</h1>
+        <p className="activity-subtitle">選択した予定の内容 <span className="activity-sample-note">（表示確認用のサンプル・実際の活動記録ではありません）</span></p>
+        <article className="activity-card">
+          <div className="activity-meta">
+            <span className="activity-icon" aria-hidden="true">✦</span>
+            <div><p className="activity-date">{monthShort} {String(eventDetail.day).padStart(2, '0')} · {year}</p>
+              <p className="activity-weekday">{new Date(year, monthIndex, eventDetail.day).toLocaleDateString('en-US', { weekday: 'long' })} · {eventDetail.time}</p>
+            </div>
+          </div>
+          <h2>{eventDetail.title}</h2>
+          <hr />
+          <h3>活動内容</h3>
+          <div className="activity-description"><p>基礎練習を中心に取り組みました。フォームを確認しながら、繰り返し練習しました。</p><p>次回は今日の気づきを意識して、少しずつ精度を上げていきます。</p></div>
+          <section className="activity-reflection" aria-labelledby="reflection-title">
+            <h3 id="reflection-title">ふりかえり</h3>
+            <p>できたこと、気づいたことを記録しておきましょう。</p>
+          </section>
+          <button className="today-button" onClick={() => setEventDetail(null)}>‹ ホームに戻る</button>
+        </article>
+      </section> : <>
       <div className="page-heading"><div><h1>高体連庭球部</h1><p>Your schedule at a glance</p></div>
         <div className="month-controls"><button className="today-button" onClick={() => { const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); setSelectedDay(now.getDate()); }}>Today</button><div className="month-navigation"><button className="icon-button bordered" aria-label="前の月" onClick={() => changeMonth(-1)}><ChevronLeft size={20}/></button><h2 aria-live="polite">{monthName} {year}</h2><button className="icon-button bordered" aria-label="次の月" onClick={() => changeMonth(1)}><ChevronRight size={20}/></button></div></div>
       </div>
@@ -83,9 +107,9 @@ function App() {
           <section className="account-card"><div className="account-identity"><span className="avatar">AK</span><div><h3>Akira Kimura</h3><p>akira.k@example.com</p></div></div><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>Manage account</button><button className="purple-link" onClick={() => placeholder('プロフィール設定')}>Edit profile</button></div><button className="sign-out" onClick={() => setNotice('サンプル画面のため、ログイン・ログアウトはまだ利用できません。')}>Sign out</button></section>
         </aside>
       </div>
+      </>}
     </main>
     {notice && <div className="toast" role="status">{notice}<button aria-label="通知を閉じる" onClick={() => setNotice(null)}><X size={16}/></button></div>}
-    {eventDetail && <div className="modal-backdrop" onClick={() => setEventDetail(null)}><section className="event-dialog" role="dialog" aria-modal="true" aria-labelledby="event-dialog-title" onClick={e => e.stopPropagation()}><button autoFocus className="dialog-close icon-button" aria-label="詳細を閉じる" onClick={() => setEventDetail(null)}><X size={20}/></button><p className="event-time">{year} / {monthIndex + 1} / {eventDetail.day} · {eventDetail.time}</p><h2 id="event-dialog-title">{eventDetail.title}</h2><p className="detail-note">サンプルの予定です。活動記録の画面は今後実装予定です。</p></section></div>}
   </>;
 }
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
