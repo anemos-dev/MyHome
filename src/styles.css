@@ -246,6 +246,8 @@
 .profile-field-label label { margin: 6px 0 8px; font-size: 14px; }
 .profile-field-label p { font-size: 12px; line-height: 1.8; }
 .profile-card input { min-height: 46px; }
+.profile-card select { width: 100%; min-height: 46px; padding: 0 12px; border: 1px solid var(--activity-border); border-radius: 9px; background: #fff; color: var(--activity-text); font: inherit; }
+.profile-card select:focus-visible { outline: 2px solid #6450ec; outline-offset: 2px; }
 .profile-sample-info { border-radius: 10px; padding: 14px 16px; background: var(--activity-bg); font-size: 12px; line-height: 1.8; }
 .profile-actions { padding-top: 24px; margin-top: 0; }
 .profile-actions button { min-height: 40px; }

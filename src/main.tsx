@@ -6,7 +6,7 @@ import './profile-image.css';
 import { HandoverPage, initialRoles } from './HandoverPage';
 import { initialDocuments } from './handoverDocuments';
 import { LoginPage } from './LoginPage';
-import { ProfileSettingsPage } from './ProfileSettingsPage';
+import { ProfileSettingsPage, type ProfileGender, type ProfileGrade } from './ProfileSettingsPage';
 import { ProfileContext, currentUserId, RecordAttributionView, type RecordAttribution } from './RecordAttribution';
 import { supabase, supabaseConfigurationError } from './supabase';
 import { LegalPage } from './LegalPage';
@@ -125,6 +125,8 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
   const [profileOpen, setProfileOpen] = useState(false);
   const [pageResetKey, setPageResetKey] = useState(0);
   const [profileRoleIds, setProfileRoleIds] = useState<string[]>([]);
+  const [profileGender, setProfileGender] = useState<ProfileGender>('');
+  const [profileGrade, setProfileGrade] = useState<ProfileGrade>('');
   const [circleSelectionOpen, setCircleSelectionOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [monthlyBudget, setMonthlyBudget] = useState('100000');
@@ -352,7 +354,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
       </div>
     </header>
     <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen ? 'activity-main' : undefined}>
-      {profileOpen ? <ProfileSettingsPage key={pageResetKey} onReset={() => setPageResetKey(key => key + 1)} displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
+      {profileOpen ? <ProfileSettingsPage key={pageResetKey} onReset={() => setPageResetKey(key => key + 1)} displayName={displayName} email={displayEmail} gender={profileGender} grade={profileGrade} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds, gender, grade) => { setDisplayName(name); setProfileRoleIds(roleIds); setProfileGender(gender); setProfileGrade(grade); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><button aria-current="page" onClick={resetBudgetPage}>予算管理</button></nav>
         <div className="budget-heading"><div><h1 id="budget-title" tabIndex={-1}>予算管理</h1><p className="activity-subtitle">サークルの予算と支出を管理します <span className="activity-sample-note">（表示確認用の一時保存）</span></p></div></div>
         <div className="budget-summary"><label>月の予算<input type="number" min="0" value={monthlyBudget} onChange={e => setMonthlyBudget(e.target.value)} />円</label><div><span>月の残り予算</span><strong className="budget-remaining">{(Number(monthlyBudget) - budgetItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)).toLocaleString()}円</strong></div><div><span>サークルの残高</span><strong className="budget-balance">{(budgetItems.reduce((sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount), 0)).toLocaleString()}円</strong></div></div>
