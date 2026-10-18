@@ -62,3 +62,5 @@
 
 - `supabase/migrations/20261018074616_create_circle_calendar_backend.sql` はSupabaseプロジェクト `myhome-dev` に適用済みです。サークル、サークル所属、予定テーブルを作り、サークル所属メンバーだけが予定を読み書きできるRLSを設定しています。予定削除とアプリ経由の所属管理は許可していません。所属は信頼された運営者が登録する前提で、画面は未接続です。
 - 活動記録と予定の削除は画面内の一時状態です。プロフィール・活動記録の永続保存は未実装です。
+
+- メンバー権限管理はsrc/MemberPermissionsPage.tsxです。実際の所属サークルを取得し、管理者のみlist_circle_members / change_member_role RPCで一覧取得・変更します。supabase/manual/member_permission_list.sqlの手動適用が必要です。DBでの認証別動作確認は未実施です。画面の管理者判定だけを認可として使わないでください。
