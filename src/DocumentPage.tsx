@@ -1,3 +1,4 @@
+import { RecordAttributionView } from './RecordAttribution';
 import { useEffect, useRef } from 'react';
 import type { HandoverDocument } from './handoverDocuments';
 import type { Role } from './RoleDocumentsPage';
@@ -23,7 +24,7 @@ export function DocumentPage({ document, role, onBack, onRoles, onHome }: {
         <div className="document-format"><button disabled aria-label="太字"><b>B</b></button><button disabled aria-label="斜体"><i>I</i></button><button disabled aria-label="下線"><u>U</u></button></div>
         <button className="document-share" disabled>共有</button>
       </div>
-      <div className="document-body"><h2>{document.title}</h2><p className="document-text">{document.body}</p></div>
+      <div className="document-body"><RecordAttributionView record={document}/><h2>{document.title}</h2><p className="document-text">{document.body}</p></div>
     </article>
     <p className="handover-note">追加した資料は再読み込みすると消えます。編集・共有・永続保存は今後実装予定です。</p>
     <button className="today-button" onClick={onBack}>‹ 資料一覧に戻る</button>

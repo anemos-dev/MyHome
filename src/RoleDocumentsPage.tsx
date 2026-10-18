@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { ProfileContext } from './RecordAttribution';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { DocumentPage } from './DocumentPage';
 import type { HandoverDocument } from './handoverDocuments';
@@ -7,6 +8,7 @@ import type { HandoverDocument } from './handoverDocuments';
 export type Role = { id: string; name: string };
 
 export function RoleDocumentsPage({ role, allDocuments, onAddDocument, onBack, onHome }: { role: Role; allDocuments: HandoverDocument[]; onAddDocument: (document: HandoverDocument) => void; onBack: () => void; onHome: () => void }) {
+  const profile = useContext(ProfileContext);
   const [query, setQuery] = useState('');
   const [selectedDocument, setSelectedDocument] = useState<HandoverDocument | null>(null);
   const [creating, setCreating] = useState(false);
@@ -35,6 +37,7 @@ export function RoleDocumentsPage({ role, allDocuments, onAddDocument, onBack, o
       id: crypto.randomUUID(), roleId: role.id, title: title.trim(), body: body.trim(),
       kind: '資料', updated: now.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric' }),
       tag: '資料', label: '一時保存', year: false, sample: false,
+      createdBy: profile.userId, updatedBy: profile.userId, createdAt: now.toISOString(), updatedAt: now.toISOString(),
     };
     onAddDocument(document);
     setCreating(false); setTitle(''); setBody(''); setError(''); setQuery('');
