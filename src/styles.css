@@ -265,3 +265,5 @@
 .activity-record-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
 .activity-delete-button { min-height: 38px; padding: 8px 16px; border: 1px solid #f2c6c6; border-radius: 9px; background: #fff; color: #b42318; font-size: 13px; }
 .activity-delete-button:hover { background: #fff1f1; }
+.event-detail-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-top: 32px; }
+.event-detail-heading h2 { margin-top: 0; min-width: 0; overflow-wrap: anywhere; }
