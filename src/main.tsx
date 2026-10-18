@@ -1,3 +1,4 @@
+import { CircleSettingsPage, type CircleAppearance } from './CircleSettingsPage';
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Search, CircleHelp, MoreHorizontal, ChevronLeft, ChevronRight, House, UserRound, Settings, CircleDot, Database, ArrowLeft, X, WalletCards } from 'lucide-react';
@@ -131,6 +132,9 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [budgetDraft, setBudgetDraft] = useState({ name: '', amount: '', category: '活動費', date: '2026-01-01', type: 'expense' as 'income' | 'expense' });
   const [selectedCircle, setSelectedCircle] = useState(circles[0]);
+  const [circleSettingsOpen, setCircleSettingsOpen] = useState(false);
+  const [circleAppearances, setCircleAppearances] = useState<Record<string, CircleAppearance>>({});
+  const currentCircleAppearance = circleAppearances[selectedCircle.id] ?? { name: selectedCircle.name, logo: null };
   const [roles, setRoles] = useState(initialRoles);
   const [documents, setDocuments] = useState(initialDocuments);
   const [query, setQuery] = useState('');
@@ -156,7 +160,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
   useEffect(() => { if (eventDetail) activityHeading.current?.focus(); }, [eventDetail]);
   useEffect(() => {
     function dismiss(e: PointerEvent) { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false); }
-    function keyboard(e: KeyboardEvent) { if (e.key === 'Escape') { if (avatarChooserOpen) { setAvatarChooserOpen(false); } else { setMenuOpen(false); setEventDetail(null); setHandoverOpen(false); setProfileOpen(false); menuButton.current?.focus(); } } }
+    function keyboard(e: KeyboardEvent) { if (e.key === 'Escape') { if (avatarChooserOpen) { setAvatarChooserOpen(false); } else { setMenuOpen(false); setEventDetail(null); setHandoverOpen(false); setProfileOpen(false); setCircleSettingsOpen(false); menuButton.current?.focus(); } } }
     document.addEventListener('pointerdown', dismiss); document.addEventListener('keydown', keyboard);
     return () => { document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', keyboard); };
   }, [avatarChooserOpen]);
@@ -207,7 +211,11 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
     }
     e.currentTarget.value = '';
   }
+  function openCircleSettings() {
+    setCircleSettingsOpen(true); setProfileOpen(false); setBudgetOpen(false); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false);
+  }
   function openProfile() {
+    setCircleSettingsOpen(false);
     setProfileOpen(true); setBudgetOpen(false); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false);
   }
   function focusPageHeading(id: string) {
@@ -223,6 +231,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
     focusPageHeading('activity-title');
   }
   function goHome() {
+    setCircleSettingsOpen(false);
     setProfileOpen(false);
     setMonth(new Date(2026, 0, 1));
     setSelectedDay(9);
@@ -233,6 +242,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
     setMenuOpen(false);
   }
   function openCircleSelection() {
+    setCircleSettingsOpen(false);
     setProfileOpen(false);
     setCircleSelectionOpen(true);
     setHandoverOpen(false);
@@ -240,6 +250,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
     setMenuOpen(false);
   }
   function openBudget() {
+    setCircleSettingsOpen(false);
     setProfileOpen(false); setBudgetOpen(true); setCircleSelectionOpen(false); setHandoverOpen(false); setEventDetail(null); setMenuOpen(false); }
   function selectCircle(circle: typeof circles[number]) {
     setSelectedCircle(circle);
@@ -346,13 +357,13 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
           <button ref={menuButton} className={`menu-trigger icon-button ${menuOpen ? 'active' : ''}`} aria-label="メニュー" aria-expanded={menuOpen} aria-controls="home-menu" onClick={() => setMenuOpen(!menuOpen)}><MoreHorizontal size={26}/></button>
           {menuOpen && <nav id="home-menu" className="menu-panel" aria-label="ホームメニュー">
             <div className="menu-heading"><span>メニュー</span><span className="menu-user-name">{displayName}</span></div>
-            {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!circleSelectionOpen && !budgetOpen && (profileOpen ? label === 'プロフィール設定' : handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setProfileOpen(false); setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setHandoverOpen(true); } else if (label === 'プロフィール設定') openProfile(); else if (label === '予算管理') openBudget(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
+            {menuItems.map(({ label, icon: Icon, admin }) => <button key={label} className={`menu-item ${(!circleSelectionOpen && !budgetOpen && (circleSettingsOpen ? label === 'サークル設定' : profileOpen ? label === 'プロフィール設定' : handoverOpen ? label === '引き継ぎ' : label === 'ホーム')) ? 'current' : ''}`} onClick={() => { if (label === 'ホーム') goHome(); else if (label === '引き継ぎ') { setCircleSettingsOpen(false); setProfileOpen(false); setMenuOpen(false); setEventDetail(null); setCircleSelectionOpen(false); setBudgetOpen(false); setHandoverOpen(true); } else if (label === 'プロフィール設定') openProfile(); else if (label === 'サークル設定') openCircleSettings(); else if (label === '予算管理') openBudget(); else if (label === 'サークル選択に戻る') openCircleSelection(); else placeholder(label); }}><span className="menu-icon"><Icon size={15}/></span><span>{label}</span>{admin && <span className="admin-badge">管理者</span>}</button>)}
           </nav>}
         </div>
       </div>
     </header>
-    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen ? 'activity-main' : undefined}>
-      {profileOpen ? <ProfileSettingsPage key={pageResetKey} onReset={() => setPageResetKey(key => key + 1)} displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
+    <main className={eventDetail || handoverOpen || circleSelectionOpen || budgetOpen || profileOpen || circleSettingsOpen ? 'activity-main' : undefined}>
+      {circleSettingsOpen ? <CircleSettingsPage key={selectedCircle.id} circle={currentCircleAppearance} onApply={value => setCircleAppearances(previous => ({ ...previous, [selectedCircle.id]: value }))} onHome={goHome}/> : profileOpen ? <ProfileSettingsPage key={pageResetKey} onReset={() => setPageResetKey(key => key + 1)} displayName={displayName} email={displayEmail} roles={roles} selectedRoleIds={profileRoleIds} onApply={(name, roleIds) => { setDisplayName(name); setProfileRoleIds(roleIds); }} onHome={goHome}/> : budgetOpen ? <section className="budget-page" aria-labelledby="budget-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={goHome}>‹ ホーム</button><span>/</span><button aria-current="page" onClick={resetBudgetPage}>予算管理</button></nav>
         <div className="budget-heading"><div><h1 id="budget-title" tabIndex={-1}>予算管理</h1><p className="activity-subtitle">サークルの予算と支出を管理します <span className="activity-sample-note">（表示確認用の一時保存）</span></p></div></div>
         <div className="budget-summary"><label>月の予算<input type="number" min="0" value={monthlyBudget} onChange={e => setMonthlyBudget(e.target.value)} />円</label><div><span>月の残り予算</span><strong className="budget-remaining">{(Number(monthlyBudget) - budgetItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0)).toLocaleString()}円</strong></div><div><span>サークルの残高</span><strong className="budget-balance">{(budgetItems.reduce((sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount), 0)).toLocaleString()}円</strong></div></div>
@@ -364,7 +375,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
         <p className="activity-subtitle">参加するサークルを選択してください</p>
         <div className="circle-selection-card">
           <p className="circle-sample-note">表示確認用のサンプルです。選択内容は再読み込みするとリセットされます。</p>
-          <div className="circle-list" role="list">{circles.map(circle => <button className={`circle-option ${selectedCircle.id === circle.id ? 'selected' : ''}`} key={circle.id} onClick={() => selectCircle(circle)}><span className="circle-option-mark" aria-hidden="true">{circle.name.charAt(0)}</span><span><strong>{circle.name}</strong><small>{circle.detail}</small></span><span className="circle-option-check" aria-hidden="true">{selectedCircle.id === circle.id ? '選択中' : '選択'}</span></button>)}</div>
+          <div className="circle-list" role="list">{circles.map(circle => <button className={`circle-option ${selectedCircle.id === circle.id ? 'selected' : ''}`} key={circle.id} onClick={() => selectCircle(circle)}><span className="circle-option-mark" aria-hidden="true">{circleAppearances[circle.id]?.logo ? <img className="circle-choice-logo" src={circleAppearances[circle.id].logo!} alt=""/> : Array.from(circleAppearances[circle.id]?.name ?? circle.name)[0]}</span><span><strong>{circleAppearances[circle.id]?.name ?? circle.name}</strong><small>{circle.detail}</small></span><span className="circle-option-check" aria-hidden="true">{selectedCircle.id === circle.id ? '選択中' : '選択'}</span></button>)}</div>
         </div>
       </section> : handoverOpen ? <HandoverPage key={pageResetKey} onReset={() => setPageResetKey(key => key + 1)} onUpdateDocument={updated => setDocuments(previous => previous.map(document => document.id === updated.id ? updated : document))} onDeleteDocument={id => setDocuments(previous => previous.filter(document => document.id !== id))} documents={documents} onAddDocument={document => setDocuments(previous => [...previous, document])} roles={roles} onAddRole={role => setRoles(previous => [...previous, role])} onHome={goHome}/> : eventDetail ? <section className="activity-page" aria-labelledby="activity-title">
         <nav className="activity-breadcrumb" aria-label="パンくず"><button onClick={() => setEventDetail(null)}>‹ ホーム</button><span>/</span><button aria-current="page" onClick={resetActivityPage}>活動記録</button></nav>
@@ -391,7 +402,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
           <button className="today-button" onClick={() => setEventDetail(null)}>‹ ホームに戻る</button>
         </article>
       </section> : <>
-      <div className="page-heading"><div><h1>{selectedCircle.name}</h1><p>サークルの予定を確認しましょう</p></div>
+      <div className="page-heading"><div><div className="circle-home-identity">{currentCircleAppearance.logo && <img className="circle-home-logo" src={currentCircleAppearance.logo} alt="サークルロゴ"/>}<h1>{currentCircleAppearance.name}</h1></div><p>サークルの予定を確認しましょう</p></div>
         <div className="month-controls"><button className="today-button" onClick={() => { const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); setSelectedDay(now.getDate()); setEventFormOpen(false); setEditingEventId(null); }}>今日</button><div className="month-navigation"><button className="icon-button bordered" aria-label="前の月" onClick={() => changeMonth(-1)}><ChevronLeft size={20}/></button><h2 aria-live="polite">{year}年{monthName}</h2><button className="icon-button bordered" aria-label="次の月" onClick={() => changeMonth(1)}><ChevronRight size={20}/></button></div></div>
       </div>
       {eventFormOpen && <form className="event-form" onSubmit={e => { e.preventDefault(); saveEvent(); }}><h2>{editingEventId !== null ? '予定を編集' : '予定を追加'}</h2><p>{year}年{monthIndex + 1}月の予定</p><label>予定名<input value={eventDraft.title} onChange={e => setEventDraft(previous => ({ ...previous, title: e.target.value }))} placeholder="予定名を入力" autoFocus required /></label><label>日<input type="number" min="1" max={new Date(year, monthIndex + 1, 0).getDate()} value={eventDraft.day} onChange={e => setEventDraft(previous => ({ ...previous, day: e.target.value === '' ? 0 : Number(e.target.value) }))} required /></label><label>開始時刻<input type="time" value={eventDraft.time} onChange={e => setEventDraft(previous => ({ ...previous, time: e.target.value }))} required /></label><label>終了時刻<input type="time" value={eventDraft.endTime} min={eventDraft.time} onChange={e => setEventDraft(previous => ({ ...previous, endTime: e.target.value }))} required /></label><label>カテゴリ<select value={eventDraft.category} onChange={e => setEventDraft(previous => ({ ...previous, category: e.target.value as Category }))}>{categories.map(category => <option key={category.key} value={category.key}>{category.label}</option>)}</select></label><div className="event-form-actions"><button type="button" className="today-button" onClick={() => { setEventFormOpen(false); setEditingEventId(null); }}>キャンセル</button><button type="submit" className="event-submit-button">{editingEventId !== null ? '変更を保存' : '追加する'}</button></div></form>}
