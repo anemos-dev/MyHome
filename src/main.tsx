@@ -13,16 +13,19 @@ import { LegalPage } from './LegalPage';
 import { MemberPermissionsPage } from './MemberPermissionsPage';
 
 type Category = 'work' | 'personal' | 'shared';
-type CalendarEvent = { id: number; dbId?: string; circleId?: string; day: number; time: string; title: string; category: Category; tone: string };
+type CalendarEvent = { id: number; dbId?: string; circleId?: string; year: number; month: number; day: number; time: string; endTime?: string; title: string; category: Category; tone: string };
+function formatEventTime(event: CalendarEvent) {
+  return event.endTime ? `${event.time}〜${event.endTime}` : event.time;
+}
 type ActivityRecord = { description: string; reflection: string } & RecordAttribution;
 const events: CalendarEvent[] = [
-  { id: 1, day: 1, time: '11:00', title: 'Design review', category: 'work', tone: 'purple' },
-  { id: 2, day: 2, time: '09:00', title: 'Project sync', category: 'personal', tone: 'teal' },
-  { id: 3, day: 5, time: '10:30', title: 'Team standup', category: 'shared', tone: 'green' },
-  { id: 4, day: 9, time: '09:30', title: 'Weekly team sync', category: 'personal', tone: 'teal' },
-  { id: 5, day: 9, time: '13:00', title: 'Lunch with Mina', category: 'shared', tone: 'orange' },
-  { id: 6, day: 13, time: '14:00', title: 'Planning', category: 'work', tone: 'pink' },
-  { id: 7, day: 22, time: '10:00', title: 'Focus time', category: 'personal', tone: 'teal' },
+  { id: 1, year: 2026, month: 1, day: 1, time: '11:00', endTime: '12:00', title: 'Design review', category: 'work', tone: 'purple' },
+  { id: 2, year: 2026, month: 1, day: 2, time: '09:00', endTime: '10:00', title: 'Project sync', category: 'personal', tone: 'teal' },
+  { id: 3, year: 2026, month: 1, day: 5, time: '10:30', endTime: '11:00', title: 'Team standup', category: 'shared', tone: 'green' },
+  { id: 4, year: 2026, month: 1, day: 9, time: '09:30', endTime: '10:30', title: 'Weekly team sync', category: 'personal', tone: 'teal' },
+  { id: 5, year: 2026, month: 1, day: 9, time: '13:00', endTime: '14:00', title: 'Lunch with Mina', category: 'shared', tone: 'orange' },
+  { id: 6, year: 2026, month: 1, day: 13, time: '14:00', endTime: '15:30', title: 'Planning', category: 'work', tone: 'pink' },
+  { id: 7, year: 2026, month: 1, day: 22, time: '10:00', endTime: '12:00', title: 'Focus time', category: 'personal', tone: 'teal' },
 ];
 const categories: { key: Category; label: string; tone: string }[] = [
   { key: 'work', label: '仕事', tone: 'purple' }, { key: 'personal', label: '個人', tone: 'teal' }, { key: 'shared', label: 'チーム共有', tone: 'orange' },
@@ -41,7 +44,7 @@ const menuItems = [
   { label: 'メンバー権限', icon: UserRound },
   { label: 'ホーム', icon: House }, { label: '引き継ぎ', icon: UserRound },
   { label: 'プロフィール設定', icon: Settings }, { label: 'サークル設定', icon: CircleDot },
-  { label: '役職設定', icon: Settings, admin: true }, { label: '予算管理', icon: WalletCards }, { label: 'データ管理', icon: Database, admin: true },
+  { label: '予算管理', icon: WalletCards }, { label: 'データ管理', icon: Database, admin: true },
   { label: 'サークル選択に戻る', icon: ArrowLeft },
 ];
 type BudgetItem = { id: number; name: string; amount: number; category: string; date: string; type: 'income' | 'expense' };
@@ -151,7 +154,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
   const [activityDraft, setActivityDraft] = useState<ActivityRecord>({ description: '', reflection: '' });
   const [eventFormOpen, setEventFormOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState<number | null>(null);
-  const [eventDraft, setEventDraft] = useState({ day: 1, title: '', time: '10:00', category: 'work' as Category });
+  const [eventDraft, setEventDraft] = useState({ day: 1, title: '', time: '10:00', endTime: '11:00', category: 'work' as Category });
   const activityHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { if (eventDetail) activityHeading.current?.focus(); }, [eventDetail]);
   useEffect(() => {
@@ -173,15 +176,15 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
       const { data: circlesData, error: circlesError } = await supabase.from('circles').select('id,name').eq('name', selectedCircle.name).limit(1);
       if (circlesError || !circlesData?.[0]) return;
       const circleId = circlesData[0].id as string;
-      const { data, error } = await supabase.from('calendar_events').select('id,circle_id,event_date,event_time,title,category').eq('circle_id', circleId).order('event_date').order('event_time');
+      const { data, error } = await supabase.from('calendar_events').select('id,circle_id,event_date,event_time,end_time,title,category').eq('circle_id', circleId).order('event_date').order('event_time');
       if (error || !data || !active) return;
       const remote = data.flatMap((row, index) => {
         const date = String(row.event_date);
         const [rowYear, rowMonth, day] = date.split('-').map(Number);
-        if (rowYear !== 2026 || rowMonth !== 1 || !day) return [];
+        if (!rowYear || rowMonth < 1 || rowMonth > 12 || !day) return [];
         const category = row.category as Category;
         const tone = category === 'work' ? 'purple' : category === 'personal' ? 'teal' : 'orange';
-        return [{ id: -index - 1, dbId: String(row.id), circleId: String(row.circle_id), day, time: String(row.event_time).slice(0, 5), title: String(row.title), category, tone }];
+        return [{ id: -index - 1, dbId: String(row.id), circleId: String(row.circle_id), year: rowYear, month: rowMonth, day, time: String(row.event_time).slice(0, 5), endTime: row.end_time ? String(row.end_time).slice(0, 5) : undefined, title: String(row.title), category, tone }];
       });
       setRemoteCircleId(circleId);
       setCalendarEvents(remote);
@@ -190,11 +193,11 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
     return () => { active = false; };
   }, [selectedCircle.name]);
 
-  const filtered = (year === 2026 && monthIndex === 0 ? calendarEvents : []).filter(e => enabled.includes(e.category) && e.title.toLowerCase().includes(query.toLowerCase())).sort((a, b) => a.day - b.day || a.time.localeCompare(b.time));
+  const filtered = calendarEvents.filter(e => e.year === year && e.month === monthIndex + 1).filter(e => enabled.includes(e.category) && e.title.toLowerCase().includes(query.toLowerCase())).sort((a, b) => a.day - b.day || a.time.localeCompare(b.time));
   const firstDay = new Date(year, monthIndex, 1).getDay();
   const dayCount = new Date(year, monthIndex + 1, 0).getDate();
   const cells = Array.from({ length: 42 }, (_, i) => i >= firstDay && i < firstDay + dayCount ? i - firstDay + 1 : null);
-  function changeMonth(delta: number) { setMonth(new Date(year, monthIndex + delta, 1)); setSelectedDay(null); }
+  function changeMonth(delta: number) { setMonth(new Date(year, monthIndex + delta, 1)); setSelectedDay(null); setEventFormOpen(false); setEditingEventId(null); }
   function placeholder(label: string) { setMenuOpen(false); setNotice(`${label}は今後実装予定です。`); }
   function handleProfileImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.currentTarget.files?.[0];
@@ -304,32 +307,34 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
     if (!day) return;
     setSelectedDay(day);
     setEditingEventId(null);
-    setEventDraft({ day, title: '', time: '10:00', category: 'work' });
+    setEventDraft({ day, title: '', time: '10:00', endTime: '11:00', category: 'work' });
     setEventFormOpen(true);
   }
   function openExistingEventEditor(event: CalendarEvent) {
+    setMonth(new Date(event.year, event.month - 1, 1));
     setSelectedDay(event.day);
     setEditingEventId(event.id);
-    setEventDraft({ day: event.day, title: event.title, time: event.time, category: event.category });
+    setEventDraft({ day: event.day, title: event.title, time: event.time, endTime: event.endTime ?? '', category: event.category });
     setEventDetail(null);
     setEventFormOpen(true);
   }
   function saveEvent() {
     const dayCount = new Date(year, monthIndex + 1, 0).getDate();
     if (!eventDraft.title.trim() || !Number.isInteger(eventDraft.day) || eventDraft.day < 1 || eventDraft.day > dayCount) { setNotice(`1〜${dayCount}日の予定日と予定名を入力してください。`); return; }
+    if (!eventDraft.time || !eventDraft.endTime || eventDraft.endTime <= eventDraft.time) { setNotice('終了時刻は開始時刻より後にしてください。'); return; }
     const tone = eventDraft.category === 'work' ? 'purple' : eventDraft.category === 'personal' ? 'teal' : 'orange';
     if (editingEventId !== null) {
-      setCalendarEvents(previous => previous.map(event => event.id === editingEventId ? { ...event, day: eventDraft.day, time: eventDraft.time, title: eventDraft.title.trim(), category: eventDraft.category, tone } : event));
+      setCalendarEvents(previous => previous.map(event => event.id === editingEventId ? { ...event, year, month: monthIndex + 1, day: eventDraft.day, time: eventDraft.time, endTime: eventDraft.endTime, title: eventDraft.title.trim(), category: eventDraft.category, tone } : event));
       const edited = calendarEvents.find(event => event.id === editingEventId);
       if (supabase && edited?.dbId) {
-        void supabase.from('calendar_events').update({ event_date: `2026-${String(monthIndex + 1).padStart(2, '0')}-${String(eventDraft.day).padStart(2, '0')}`, event_time: eventDraft.time, title: eventDraft.title.trim(), category: eventDraft.category }).eq('id', edited.dbId).then(({ error }) => { if (error) setNotice('予定の更新をDBに保存できませんでした。'); });
+        void supabase.from('calendar_events').update({ event_date: `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(eventDraft.day).padStart(2, '0')}`, event_time: eventDraft.time, end_time: eventDraft.endTime, title: eventDraft.title.trim(), category: eventDraft.category }).eq('id', edited.dbId).then(({ error }) => { if (error) setNotice('予定の更新をDBに保存できませんでした。'); });
       }
       setNotice(`${monthIndex + 1}月${eventDraft.day}日の予定を更新しました。`);
     } else {
-      const localEvent = { id: Date.now(), day: eventDraft.day, time: eventDraft.time, title: eventDraft.title.trim(), category: eventDraft.category, tone };
+      const localEvent = { id: Date.now(), year, month: monthIndex + 1, day: eventDraft.day, time: eventDraft.time, endTime: eventDraft.endTime, title: eventDraft.title.trim(), category: eventDraft.category, tone };
       setCalendarEvents(previous => [...previous, localEvent]);
       if (supabase && remoteCircleId) {
-        void supabase.from('calendar_events').insert({ circle_id: remoteCircleId, event_date: `2026-${String(monthIndex + 1).padStart(2, '0')}-${String(eventDraft.day).padStart(2, '0')}`, event_time: eventDraft.time, title: localEvent.title, category: eventDraft.category }).select('id').single().then(({ data, error }) => {
+        void supabase.from('calendar_events').insert({ circle_id: remoteCircleId, event_date: `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(eventDraft.day).padStart(2, '0')}`, event_time: eventDraft.time, end_time: eventDraft.endTime, title: localEvent.title, category: eventDraft.category }).select('id').single().then(({ data, error }) => {
           if (error) setNotice('予定をDBに保存できませんでした。');
           else if (data) setCalendarEvents(previous => previous.map(event => event.id === localEvent.id ? { ...event, dbId: String(data.id), circleId: remoteCircleId } : event));
         });
@@ -375,8 +380,8 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
         <article className="activity-card">
           <div className="activity-meta">
             <span className="activity-icon" aria-hidden="true">✦</span>
-            <div><p className="activity-date">{year}年{monthIndex + 1}月{eventDetail.day}日</p>
-              <p className="activity-weekday">{new Date(year, monthIndex, eventDetail.day).toLocaleDateString('ja-JP', { weekday: 'long' })} · {eventDetail.time}</p>
+            <div><p className="activity-date">{eventDetail.year}年{eventDetail.month}月{eventDetail.day}日</p>
+              <p className="activity-weekday">{new Date(eventDetail.year, eventDetail.month - 1, eventDetail.day).toLocaleDateString('ja-JP', { weekday: 'long' })} · {formatEventTime(eventDetail)}</p>
             </div>
           </div>
           <div className="event-detail-heading"><h2>{eventDetail.title}</h2><div className="activity-record-actions"><button className="today-button event-detail-edit" onClick={() => openExistingEventEditor(eventDetail)}>予定を編集</button><button className="activity-delete-button" onClick={deleteEvent}>予定を削除</button></div></div>
@@ -394,20 +399,20 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
         </article>
       </section> : <>
       <div className="page-heading"><div><h1>{selectedCircle.name}</h1><p>サークルの予定を確認しましょう</p></div>
-        <div className="month-controls"><button className="today-button" onClick={() => { const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); setSelectedDay(now.getDate()); }}>今日</button><div className="month-navigation"><button className="icon-button bordered" aria-label="前の月" onClick={() => changeMonth(-1)}><ChevronLeft size={20}/></button><h2 aria-live="polite">{year}年{monthName}</h2><button className="icon-button bordered" aria-label="次の月" onClick={() => changeMonth(1)}><ChevronRight size={20}/></button></div></div>
+        <div className="month-controls"><button className="today-button" onClick={() => { const now = new Date(); setMonth(new Date(now.getFullYear(), now.getMonth(), 1)); setSelectedDay(now.getDate()); setEventFormOpen(false); setEditingEventId(null); }}>今日</button><div className="month-navigation"><button className="icon-button bordered" aria-label="前の月" onClick={() => changeMonth(-1)}><ChevronLeft size={20}/></button><h2 aria-live="polite">{year}年{monthName}</h2><button className="icon-button bordered" aria-label="次の月" onClick={() => changeMonth(1)}><ChevronRight size={20}/></button></div></div>
       </div>
-      {eventFormOpen && <form className="event-form" onSubmit={e => { e.preventDefault(); saveEvent(); }}><h2>{editingEventId !== null ? '予定を編集' : '予定を追加'}</h2><p>{monthIndex + 1}月の予定</p><label>予定名<input value={eventDraft.title} onChange={e => setEventDraft(previous => ({ ...previous, title: e.target.value }))} placeholder="予定名を入力" autoFocus required /></label><label>日<input type="number" min="1" max={new Date(year, monthIndex + 1, 0).getDate()} value={eventDraft.day} onChange={e => setEventDraft(previous => ({ ...previous, day: e.target.value === '' ? 0 : Number(e.target.value) }))} required /></label><label>時刻<input type="time" value={eventDraft.time} onChange={e => setEventDraft(previous => ({ ...previous, time: e.target.value }))} required /></label><label>カテゴリ<select value={eventDraft.category} onChange={e => setEventDraft(previous => ({ ...previous, category: e.target.value as Category }))}>{categories.map(category => <option key={category.key} value={category.key}>{category.label}</option>)}</select></label><div className="event-form-actions"><button type="button" className="today-button" onClick={() => { setEventFormOpen(false); setEditingEventId(null); }}>キャンセル</button><button type="submit" className="event-submit-button">{editingEventId !== null ? '変更を保存' : '追加する'}</button></div></form>}
+      {eventFormOpen && <form className="event-form" onSubmit={e => { e.preventDefault(); saveEvent(); }}><h2>{editingEventId !== null ? '予定を編集' : '予定を追加'}</h2><p>{year}年{monthIndex + 1}月の予定</p><label>予定名<input value={eventDraft.title} onChange={e => setEventDraft(previous => ({ ...previous, title: e.target.value }))} placeholder="予定名を入力" autoFocus required /></label><label>日<input type="number" min="1" max={new Date(year, monthIndex + 1, 0).getDate()} value={eventDraft.day} onChange={e => setEventDraft(previous => ({ ...previous, day: e.target.value === '' ? 0 : Number(e.target.value) }))} required /></label><label>開始時刻<input type="time" value={eventDraft.time} onChange={e => setEventDraft(previous => ({ ...previous, time: e.target.value }))} required /></label><label>終了時刻<input type="time" value={eventDraft.endTime} min={eventDraft.time} onChange={e => setEventDraft(previous => ({ ...previous, endTime: e.target.value }))} required /></label><label>カテゴリ<select value={eventDraft.category} onChange={e => setEventDraft(previous => ({ ...previous, category: e.target.value as Category }))}>{categories.map(category => <option key={category.key} value={category.key}>{category.label}</option>)}</select></label><div className="event-form-actions"><button type="button" className="today-button" onClick={() => { setEventFormOpen(false); setEditingEventId(null); }}>キャンセル</button><button type="submit" className="event-submit-button">{editingEventId !== null ? '変更を保存' : '追加する'}</button></div></form>}
       <div className="dashboard">
         <section className="calendar-card" aria-label={`${year}年${monthIndex + 1}月のカレンダー`}>
           <div className="weekdays">{['日', '月', '火', '水', '木', '金', '土'].map(day => <span key={day}>{day}</span>)}</div>
           <div className="calendar-grid">{cells.map((day, i) => <div className={`day-cell ${day === null ? 'empty' : ''}`} key={i} onClick={() => day !== null && openEventEditor(day)}>{day !== null && <>
             <button className={`day-number ${selectedDay === day ? 'selected' : ''}`} aria-label={`${monthIndex + 1}月${day}日に予定を追加`} aria-pressed={selectedDay === day} onClick={e => { e.stopPropagation(); openEventEditor(day); }}>{day}</button>
-            <div className="day-events">{filtered.filter(e => e.day === day).map(event => <button className={`event-chip tone-${event.tone}`} key={event.id} title={`${event.time} ${event.title}`} onClick={e => { e.stopPropagation(); setEventDetail(event); }}>{event.title === 'Lunch with Mina' ? 'Lunch · Mina' : event.title}</button>)}</div>
+            <div className="day-events">{filtered.filter(e => e.day === day).map(event => <button className={`event-chip tone-${event.tone}`} key={event.id} title={`${formatEventTime(event)} ${event.title}`} onClick={e => { e.stopPropagation(); setEventDetail(event); }}>{event.title === 'Lunch with Mina' ? 'Lunch · Mina' : event.title}</button>)}</div>
           </>}</div>)}</div>
         </section>
         <aside className="schedule-card">
           <h2>{monthName}の予定</h2><p className="schedule-subtitle">{filtered.length}件の予定 · 日時順</p>
-          <div className="schedule-list">{filtered.length ? filtered.map(event => <button className="schedule-row" key={event.id} onClick={() => setEventDetail(event)}><span className={`event-dot tone-${event.tone}`}/><span><span className="event-time">{monthIndex + 1}月{event.day}日 · {event.time}</span><span className="event-title">{event.title}</span></span></button>) : <p className="empty-message">{query ? '検索に一致する予定はありません。' : 'この月の予定はありません。'}</p>}</div>
+          <div className="schedule-list">{filtered.length ? filtered.map(event => <button className="schedule-row" key={event.id} onClick={() => setEventDetail(event)}><span className={`event-dot tone-${event.tone}`}/><span><span className="event-time">{monthIndex + 1}月{event.day}日 · {formatEventTime(event)}</span><span className="event-title">{event.title}</span></span></button>) : <p className="empty-message">{query ? '検索に一致する予定はありません。' : 'この月の予定はありません。'}</p>}</div>
           <section className="calendar-filters"><h3>カレンダーの表示設定</h3>{categories.map(category => <label key={category.key}><span className={`category-square tone-${category.tone}`}/><span>{category.label}</span><input type="checkbox" checked={enabled.includes(category.key)} onChange={() => setEnabled(old => old.includes(category.key) ? old.filter(k => k !== category.key) : [...old, category.key])}/></label>)}</section>
           <section className="account-card"><div className="account-identity"><button className="avatar avatar-button" type="button" aria-label="プロフィールアイコンを選択" onClick={() => setAvatarChooserOpen(true)}>{profileImage ? <img className="avatar-image" src={profileImage} alt=""/> : selectedProfileAvatar ? <span aria-hidden="true">{selectedProfileAvatar.illustration}</span> : initials}</button><div><h3>{displayName}</h3><p>{displayEmail}</p><p className="account-role-summary">{roles.filter(role => profileRoleIds.includes(role.id)).map(role => role.name).join('・') || '役職未設定'}</p><button className="profile-image-change" type="button" onClick={() => setAvatarChooserOpen(true)}>アイコンを変更</button></div></div><input ref={profileImageInput} className="profile-image-input" type="file" accept="image/*" aria-label="プロフィール画像ファイルを選択" onChange={handleProfileImageChange}/><div className="account-links"><button onClick={() => placeholder('アカウント管理')}>アカウント管理</button><button className="purple-link" onClick={openProfile}>プロフィール設定</button></div><button className="sign-out" onClick={onLogout}>ログアウト</button></section>
         </aside>
