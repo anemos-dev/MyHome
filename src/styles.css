@@ -267,3 +267,10 @@
 .activity-delete-button:hover { background: #fff1f1; }
 .event-detail-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-top: 32px; }
 .event-detail-heading h2 { margin-top: 0; min-width: 0; overflow-wrap: anywhere; }
+
+.document-edit-form { display: grid; gap: 12px; }
+.document-edit-form label { font-size: 14px; font-weight: 600; }
+.document-edit-form input, .document-edit-form textarea { width: 100%; min-width: 0; border: 1px solid var(--activity-border); border-radius: 8px; padding: 12px; font: inherit; color: inherit; }
+.document-edit-form textarea { resize: vertical; }
+.document-detail-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0 16px; }
+.document-edit-form [role="alert"] { color: #b42318; }
