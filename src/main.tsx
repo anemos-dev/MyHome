@@ -157,7 +157,7 @@ function App({ user, onLogout }: { user?: import('@supabase/supabase-js').User; 
   const year = month.getFullYear(), monthIndex = month.getMonth();
   const monthName = month.toLocaleString('ja-JP', { month: 'long' });
 
-  const filtered = (year === 2026 && monthIndex === 0 ? calendarEvents : []).filter(e => enabled.includes(e.category) && e.title.toLowerCase().includes(query.toLowerCase()));
+  const filtered = (year === 2026 && monthIndex === 0 ? calendarEvents : []).filter(e => enabled.includes(e.category) && e.title.toLowerCase().includes(query.toLowerCase())).sort((a, b) => a.day - b.day || a.time.localeCompare(b.time));
   const firstDay = new Date(year, monthIndex, 1).getDay();
   const dayCount = new Date(year, monthIndex + 1, 0).getDate();
   const cells = Array.from({ length: 42 }, (_, i) => i >= firstDay && i < firstDay + dayCount ? i - firstDay + 1 : null);
